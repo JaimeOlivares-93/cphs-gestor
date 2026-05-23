@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#020617] text-slate-100;
+  }
+}
+
+/* Scrollbar Personalizado */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #020617;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Efectos Premium */
+.glass-card {
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(30, 41, 59, 0.7);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+}
+
+.glass-card-interactive {
+  @apply transition-all duration-300;
+}
+
+.glass-card-interactive:hover {
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(16, 185, 129, 0.4);
+  box-shadow: 0 10px 30px rgba(16, 185, 129, 0.05);
+  transform: translateY(-2px);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.btn-gradient {
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  @apply text-white font-medium px-4 py-2 rounded-lg shadow-lg hover:opacity-90 transition-all duration-300 transform hover:scale-[1.02] active:scale-95;
+}
+
+.btn-secondary {
+  @apply bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700/80 font-medium px-4 py-2 rounded-lg transition-all duration-300 hover:scale-[1.02];
+}

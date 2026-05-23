@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CPHS Gestor - Control, Gestión y Cumplimiento Móvil</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#020617',
+                            card: '#0f172a',
+                            cardBorder: '#1e293b',
+                            text: '#f8fafc',
+                            muted: '#94a3b8',
+                            primary: '#10b981',
+                            primaryHover: '#059669',
+                            secondary: '#06b6d4',
+                            warning: '#f59e0b',
+                            danger: '#f43f5e',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Outfit', 'Inter', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- React & Babel CDNs -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Custom CSS for effects -->
+    <style>
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #020617;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1e293b;
+            border-radius: 4px;
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(30, 41, 59, 0.8);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+        .text-gradient {
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .btn-gradient {
+            background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+            color: white;
+            font-weight: 600;
+            padding: 0.75rem 1.25rem;
+            border-radius: 1rem;
+            transition: all 0.2s;
+            box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+        }
+        .btn-gradient:active {
+            transform: scale(0.97);
+            opacity: 0.95;
+        }
+        .btn-secondary {
+            background: rgba(30, 41, 59, 0.9);
+            border: 1px solid rgba(51, 65, 85, 0.9);
+            color: #e2e8f0;
+            font-weight: 600;
+            padding: 0.75rem 1.25rem;
+            border-radius: 1rem;
+            transition: all 0.2s;
+        }
+        .btn-secondary:active {
+            transform: scale(0.97);
+        }
+        
+        /* Previene el zoom en inputs en iOS */
+        input, select, textarea {
+            font-size: 16px !important;
+        }
+    </style>
+</head>
+<body class="bg-[#020617] text-slate-50 min-h-screen font-sans antialiased overflow-x-hidden select-none">
+    <div id="root"></div>
+
+    <!-- Script React SPA -->
+    <script type="text/babel">
+        const { useState, useEffect, useMemo } = React;
+
+        // Mapeo manual de iconos SVG optimizados para celular
+        const Icon = ({ name, className = "w-5 h-5" }) => {
+            const paths = {
+                shield: <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>,
+                dashboard: <>
+                    <rect x="3" y="3" width="7" height="9" rx="1"/>
+                    <rect x="14" y="3" width="7" height="5" rx="1"/>
+                    <rect x="14" y="12" width="7" height="9" rx="1"/>
+                    <rect x="3" y="16" width="7" height="5" rx="1"/>
+                </>,
+                calendar: <>
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                </>,
+                clipboard: <>
+                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
+                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
+                </>,
+                graduation: <>
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                    <path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"/>
+                </>,
+                filecheck: <>
+                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <path d="m9 15 2 2 4-4"/>
+                </>,
+                activity: <>
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                </>,
+                clock: <>
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </>,
+                alert: <>
+                    <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </>,
+                plus: <>
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </>,
+                search: <>
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </>,
+                download: <>
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="7 10 12 15 17 10"/>
+                    <line x1="12" y1="15" x2="12" y2="3"/>
+                </>,
+                filetext: <>
+                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <line x1="10" y1="9" x2="8" y2="9"/>
+                </>,
+                check: <>
+                    <polyline points="20 6 9 17 4 12"/>
+                </>,
+                award: <>
+                    <circle cx="12" cy="8" r="7"/>
+                    <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>
+                </>,
+                chevronRight: <>
+                    <polyline points="9 18 15 12 9 6"/>
+                </>,
+                checkcircle: <>
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </>,
+                camera: <>
+                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                    <circle cx="12" cy="13" r="4"/>
+                </>,
+                x: <>
+                    <line x1="18" y1="6" x2="6" y2="18"/>
+                    <line x1="6" y1="6" x2="18" y2="18"/>
+                </>
+            };
+
+            return (
+                <svg 
+                    xmlns="http://www.w3.org/2000/svg" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2.5" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    className={className}
+                >
+                    {paths[name] || <circle cx="12" cy="12" r="10"/>}
+                </svg>
+            );
+        };
+
+        const INITIAL_SEED_DATA = {
+            meetings: [
+                { id: 1, title: 'Constitución del Comité Paritario 2026', type: 'EXTRAORDINARIA', date: '2026-01-15', description: 'Reunión inicial para constituir los cargos del comité, asignar presidente y secretario, y establecer el cronograma anual.', attendees: ['Juan Pérez', 'María Gómez', 'Pedro Silva', 'Ana López', 'Prevencionista CPHS'], act_file_path: 'mock_acta_constitucion.pdf', status: 'COMPLETADA' },
+                { id: 2, title: 'Reunión Ordinaria Mensual - Febrero', type: 'ORDINARIA', date: '2026-02-18', description: 'Revisión del plan de trabajo anual y aprobación del cronograma de inspecciones de terreno.', attendees: ['Juan Pérez', 'María Gómez', 'Ana López', 'Prevencionista CPHS'], act_file_path: 'mock_acta_febrero.pdf', status: 'COMPLETADA' },
+                { id: 3, title: 'Reunión Ordinaria Mensual - Marzo', type: 'ORDINARIA', date: '2026-03-18', description: 'Análisis del resultado de la capacitación de extintores y revisión de hallazgos en talleres.', attendees: ['Juan Pérez', 'María Gómez', 'Pedro Silva', 'Ana López', 'Prevencionista CPHS'], act_file_path: 'mock_acta_marzo.pdf', status: 'COMPLETADA' },
+                { id: 4, title: 'Reunión Ordinaria Mensual - Abril', type: 'ORDINARIA', date: '2026-04-15', description: 'Análisis del accidente leve ocurrido en bodega y seguimiento del plan de acción correctivo de los 5 Porqués.', attendees: ['Juan Pérez', 'María Gómez', 'Pedro Silva', 'Prevencionista CPHS'], act_file_path: 'mock_acta_abril.pdf', status: 'COMPLETADA' },
+                { id: 5, title: 'Reunión Ordinaria Mensual - Mayo', type: 'ORDINARIA', date: '2026-05-13', description: 'Coordinación de la capacitación de primeros auxilios y revisión de estado de hallazgos críticos.', attendees: ['Juan Pérez', 'María Gómez', 'Pedro Silva', 'Ana López', 'Prevencionista CPHS'], act_file_path: null, status: 'COMPLETADA' },
+                { id: 6, title: 'Reunión Ordinaria Mensual - Junio', type: 'ORDINARIA', date: '2026-06-17', description: 'Coordinación del simulacro general y evaluación de EPP en bodegas de despacho.', attendees: [], act_file_path: null, status: 'PENDIENTE' }
+            ],
+            commitments: [
+                { id: 1, meeting_id: 1, description: 'Presentar el Acta de Constitución a la Inspección del Trabajo', responsible_name: 'María Gómez', due_date: '2026-01-30', status: 'COMPLETADO', closed_at: '2026-01-25' },
+                { id: 2, meeting_id: 2, description: 'Diseñar la lista de verificación para la inspección de extintores', responsible_name: 'Pedro Silva', due_date: '2026-02-28', status: 'COMPLETADO', closed_at: '2026-02-26' },
+                { id: 3, meeting_id: 3, description: 'Gestionar recargas de los 4 extintores vencidos detectados en Taller', responsible_name: 'Juan Pérez', due_date: '2026-03-31', status: 'COMPLETADO', closed_at: '2026-03-29' },
+                { id: 4, meeting_id: 4, description: 'Comprar e instalar el resguardo de seguridad en la sierra de banco', responsible_name: 'Pedro Silva', due_date: '2026-04-30', status: 'COMPLETADO', closed_at: '2026-04-28' },
+                { id: 5, meeting_id: 4, description: 'Dictar charla sobre cultura de reporte preventivo de incidentes', responsible_name: 'Prevencionista CPHS', due_date: '2026-05-15', status: 'COMPLETADO', closed_at: '2026-05-12' },
+                { id: 6, meeting_id: 5, description: 'Coordinar con la Mutual de Seguridad el temario del curso de Primeros Auxilios', responsible_name: 'María Gómez', due_date: '2026-05-30', status: 'PENDIENTE', closed_at: null },
+                { id: 7, meeting_id: 5, description: 'Elaborar el informe trimestral de accidentabilidad del CPHS', responsible_name: 'Prevencionista CPHS', due_date: '2026-06-10', status: 'PENDIENTE', closed_at: null }
+            ],
+            inspections: [
+                { id: 1, title: 'Inspección de Extintores y Red Húmeda - Zona Talleres', planned_date: '2026-03-10', conducted_date: '2026-03-10', inspector_name: 'Pedro Silva', report_file_path: 'mock_informe_extintores.pdf', status: 'COMPLETADA' },
+                { id: 2, title: 'Inspección de EPP - Bodegas de Despacho y Almacén', planned_date: '2026-04-12', conducted_date: '2026-04-12', inspector_name: 'Juan Pérez', report_file_path: 'mock_informe_epp.pdf', status: 'COMPLETADA' },
+                { id: 3, title: 'Inspección General de Instalaciones Eléctricas', planned_date: '2026-05-10', conducted_date: '2026-05-10', inspector_name: 'Prevencionista CPHS', report_file_path: null, status: 'COMPLETADA' },
+                { id: 4, title: 'Inspección Mensual programada - Ergonomía en Oficinas', planned_date: '2026-06-15', conducted_date: null, inspector_name: 'Ana López', report_file_path: null, status: 'PENDIENTE' }
+            ],
+            findings: [
+                { id: 1, inspection_id: 1, description: 'Extintor N° 4 en Taller Mecánico se encuentra vencido y sin presión.', risk_level: 'ALTO', corrective_measure: 'Recargar el extintor y colocar sello de inspección vigente.', due_date: '2026-03-20', status: 'CERRADO', evidence_file_path: 'mock_extintor.png', closed_at: '2026-03-19' },
+                { id: 2, inspection_id: 1, description: 'Gabinete de red húmeda obstruido por cajas plásticas de herramientas.', risk_level: 'MEDIO', corrective_measure: 'Despejar el área de acceso a la red húmeda e instruir a los operarios.', due_date: '2026-03-15', status: 'CERRADO', evidence_file_path: null, closed_at: '2026-03-11' },
+                { id: 3, inspection_id: 2, description: 'Operario de apiladora opera en pasillo principal sin zapatos de seguridad.', risk_level: 'CRITICO', corrective_measure: 'Entrega inmediata de calzado y amonestación preventiva según RIOHS.', due_date: '2026-04-13', status: 'CERRADO', evidence_file_path: 'mock_zapatos.png', closed_at: '2026-04-12' },
+                { id: 4, inspection_id: 3, description: 'Tablero eléctrico auxiliar de mantención con cables expuestos sin tapa de protección.', risk_level: 'CRITICO', corrective_measure: 'Instalar acrílico de aislamiento y tapa metálica del gabinete eléctrico.', due_date: '2026-05-18', status: 'ABIERTO', evidence_file_path: 'mock_tablero.png', closed_at: null },
+                { id: 5, inspection_id: 3, description: 'Falta señalización de salida de emergencia en pasillo del sector B.', risk_level: 'BAJO', corrective_measure: 'Adquirir y fijar letrero fotoluminiscente de evacuación.', due_date: '2026-05-30', status: 'ABIERTO', evidence_file_path: null, closed_at: null }
+            ],
+            trainings: [
+                { id: 1, topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', planned_date: '2026-03-25', conducted_date: '2026-03-25', hours: 2, attendee_count: 5, status: 'COMPLETADA', attendance_list_file_path: 'mock_lista_ext.pdf', photo_file_path: 'mock_foto_ext.jpg', material_file_path: 'mock_manual_ext.pdf' },
+                { id: 2, topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', planned_date: '2026-05-18', conducted_date: '2026-05-18', hours: 4, attendee_count: 4, status: 'COMPLETADA', attendance_list_file_path: 'mock_lista_rcp.pdf', photo_file_path: 'mock_foto_rcp.jpg', material_file_path: null },
+                { id: 3, topic: 'Prevención de Riesgos de Atrapamientos y EPP', planned_date: '2026-06-22', conducted_date: null, hours: 2, attendee_count: 0, status: 'PENDIENTE', attendance_list_file_path: null, photo_file_path: null, material_file_path: null }
+            ],
+            training_employees: [
+                { id: 1, training_id: 1, employee_name: 'Juan Pérez', employee_run: '12.345.678-9', certificate_file_path: 'mock_cert_juan.pdf', status: 'APROBADO', training_topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', training_date: '2026-03-25' },
+                { id: 2, training_id: 1, employee_name: 'María Gómez', employee_run: '15.432.109-8', certificate_file_path: 'mock_cert_maria.pdf', status: 'APROBADO', training_topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', training_date: '2026-03-25' },
+                { id: 3, training_id: 1, employee_name: 'Pedro Silva', employee_run: '11.222.333-k', certificate_file_path: 'mock_cert_pedro.pdf', status: 'APROBADO', training_topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', training_date: '2026-03-25' },
+                { id: 4, training_id: 1, employee_name: 'Carlos Mendoza', employee_run: '18.555.666-4', certificate_file_path: 'mock_cert_carlos.pdf', status: 'APROBADO', training_topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', training_date: '2026-03-25' },
+                { id: 5, training_id: 1, employee_name: 'Ana López', employee_run: '14.999.888-7', certificate_file_path: 'mock_cert_ana.pdf', status: 'APROBADO', training_topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', training_date: '2026-03-25' },
+                { id: 6, training_id: 2, employee_name: 'Juan Pérez', employee_run: '12.345.678-9', certificate_file_path: 'mock_cert_juan_rcp.pdf', status: 'APROBADO', training_topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', training_date: '2026-05-18' },
+                { id: 7, training_id: 2, employee_name: 'María Gómez', employee_run: '15.432.109-8', certificate_file_path: 'mock_cert_maria_rcp.pdf', status: 'APROBADO', training_topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', training_date: '2026-05-18' },
+                { id: 8, training_id: 2, employee_name: 'Pedro Silva', employee_run: '11.222.333-k', certificate_file_path: 'mock_cert_pedro_rcp.pdf', status: 'APROBADO', training_topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', training_date: '2026-05-18' },
+                { id: 9, training_id: 2, employee_name: 'Ana López', employee_run: '14.999.888-7', certificate_file_path: 'mock_cert_ana_rcp.pdf', status: 'APROBADO', training_topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', training_date: '2026-05-18' }
+            ],
+            accidents: [
+                {
+                    id: 1,
+                    employee_name: 'Juan Pérez',
+                    date: '2026-04-14 10:15',
+                    accident_type: 'LEVE',
+                    description: 'El operario sufrió un corte profundo en la palma de la mano izquierda mientras operaba la sierra de banco del taller mecánico, al intentar retirar una pieza de madera excedente.',
+                    root_cause_method: '5_WHYS',
+                    root_cause_analysis: [
+                        '¿Por qué se cortó la mano? Porque entró en contacto directo con el disco de sierra en rotación.',
+                        '¿Por qué hizo contacto directo? Porque intentó remover madera residual sin detener la máquina y sin usar empujador.',
+                        '¿Por qué no detuvo la máquina ni usó empujador? Porque quería agilizar la tarea y la máquina no poseía la guarda de protección.',
+                        '¿Por qué no poseía la guarda de protección? Porque se fracturó la semana anterior y el equipo no fue bloqueado ni etiquetado.',
+                        '¿Por qué no se bloqueó ni se reportó el daño? Porque no se realizó la inspección pre-operacional diaria ni existe una cultura arraigada de detención de tareas inseguras.'
+                    ],
+                    corrective_measures: [
+                        { measure: 'Diseñar y fabricar protector acrílico y empujador plástico para sierra', due_date: '2026-04-20', status: 'COMPLETADA', date_closed: '2026-04-18' },
+                        { measure: 'Implementar lista de chequeo pre-operacional para equipos del taller', due_date: '2026-04-25', status: 'COMPLETADA', date_closed: '2026-04-24' },
+                        { measure: 'Realizar capacitación flash a operarios sobre Bloqueo y Etiquetado (LOTO)', due_date: '2026-04-30', status: 'COMPLETADA', date_closed: '2026-04-28' }
+                    ],
+                    status: 'CERRADO'
+                }
+            ],
+            annual_plan: [
+                { id: 1, task_name: 'Constitución Legal del CPHS 2026', month: 1, type: 'REUNION', status: 'COMPLETADO', responsible: 'Gerente General' },
+                { id: 2, task_name: 'Planificación e inicio de cronograma de trabajo anual', month: 2, type: 'OTRO', status: 'COMPLETADO', responsible: 'Prevencionista CPHS' },
+                { id: 3, task_name: 'Reunión Ordinaria Mensual - Febrero', month: 2, type: 'REUNION', status: 'COMPLETADO', responsible: 'Secretario CPHS' },
+                { id: 4, task_name: 'Inspección de Extintores y Red Húmeda - Zona Talleres', month: 3, type: 'INSPECCION', status: 'COMPLETADO', responsible: 'Pedro Silva' },
+                { id: 5, task_name: 'Capacitación: Uso y Manejo de Extintores', month: 3, type: 'CAPACITACION', status: 'COMPLETADO', responsible: 'Prevencionista CPHS' },
+                { id: 6, task_name: 'Reunión Ordinaria Mensual - Marzo', month: 3, type: 'REUNION', status: 'COMPLETADO', responsible: 'Secretario CPHS' },
+                { id: 7, task_name: 'Inspección de EPP - Bodegas de Despacho', month: 4, type: 'INSPECCION', status: 'COMPLETADO', responsible: 'Juan Pérez' },
+                { id: 8, task_name: 'Reunión Ordinaria Mensual - Abril', month: 4, type: 'REUNION', status: 'COMPLETADO', responsible: 'Secretario CPHS' },
+                { id: 9, task_name: 'Inspección de Instalaciones Eléctricas de la Planta', month: 5, type: 'INSPECCION', status: 'COMPLETADO', responsible: 'Prevencionista CPHS' },
+                { id: 10, task_name: 'Capacitación: Curso RCP y Primeros Auxilios', month: 5, type: 'CAPACITACION', status: 'COMPLETADO', responsible: 'María Gómez' },
+                { id: 11, task_name: 'Reunión Ordinaria Mensual - Mayo', month: 5, type: 'REUNION', status: 'COMPLETADO', responsible: 'Secretario CPHS' },
+                { id: 12, task_name: 'Inspección de Ergonomía y Puestos de Trabajo', month: 6, type: 'INSPECCION', status: 'PENDIENTE', responsible: 'Ana López' },
+                { id: 13, task_name: 'Reunión Ordinaria Mensual - Junio', month: 6, type: 'REUNION', status: 'PENDIENTE', responsible: 'Secretario CPHS' },
+                { id: 14, task_name: 'Reunión Ordinaria Mensual - Julio', month: 7, type: 'REUNION', status: 'PENDIENTE', responsible: 'Secretario CPHS' },
+                { id: 15, task_name: 'Capacitación: Ergonomía e Higiene Postural', month: 8, type: 'CAPACITACION', status: 'PENDIENTE', responsible: 'Prevencionista CPHS' },
+                { id: 16, task_name: 'Reunión Ordinaria Mensual - Agosto', month: 8, type: 'REUNION', status: 'PENDIENTE', responsible: 'Secretario CPHS' },
+                { id: 17, task_name: 'Reunión Ordinaria Mensual - Septiembre', month: 9, type: 'REUNION', status: 'PENDIENTE', responsible: 'Secretario CPHS' },
+                { id: 18, task_name: 'Simulacro General de Evacuación por Incendio', month: 10, type: 'AUDITORIA', status: 'PENDIENTE', responsible: 'Comité Paritario' },
+                { id: 19, task_name: 'Reunión Ordinaria Mensual - Octubre', month: 10, type: 'REUNION', status: 'PENDIENTE', responsible: 'Secretario CPHS' },
+                { id: 20, task_name: 'Inspección de Terreno y Sustancias Químicas', month: 11, type: 'INSPECCION', status: 'PENDIENTE', responsible: 'Ana López' },
+                { id: 21, task_name: 'Reunión Ordinaria Mensual - Noviembre', month: 11, type: 'REUNION', status: 'PENDIENTE', responsible: 'Secretario CPHS' },
+                { id: 22, task_name: 'Evaluación Anual de Desempeño y Cumplimiento', month: 12, type: 'AUDITORIA', status: 'PENDIENTE', responsible: 'Presidente CPHS' },
+                { id: 23, task_name: 'Reunión Ordinaria Mensual - Diciembre', month: 12, type: 'REUNION', status: 'PENDIENTE', responsible: 'Secretario CPHS' }
+            ]
+        };
+
+        function App() {
+            // Navigation State (Mobile first Bottom Bar tabs)
+            const [activeTab, setActiveTab] = useState('dashboard');
+            
+            // Entities States
+            const [meetings, setMeetings] = useState(INITIAL_SEED_DATA.meetings);
+            const [commitments, setCommitments] = useState(INITIAL_SEED_DATA.commitments);
+            const [inspections, setInspections] = useState(INITIAL_SEED_DATA.inspections);
+            const [findings, setFindings] = useState(INITIAL_SEED_DATA.findings);
+            const [trainings, setTrainings] = useState(INITIAL_SEED_DATA.trainings);
+            const [certificates, setCertificates] = useState(INITIAL_SEED_DATA.training_employees);
+            const [accidents, setAccidents] = useState(INITIAL_SEED_DATA.accidents);
+            const [annualPlan, setAnnualPlan] = useState(INITIAL_SEED_DATA.annual_plan);
+
+            // Search / Selection states
+            const [certSearchQuery, setCertSearchQuery] = useState('');
+            const [selectedMeeting, setSelectedMeeting] = useState(null);
+            const [selectedInspection, setSelectedInspection] = useState(null);
+            const [selectedTraining, setSelectedTraining] = useState(null);
+            const [selectedAccident, setSelectedAccident] = useState(null);
+            const [activeCertificatePdf, setActiveCertificatePdf] = useState(null);
+
+            // Modal / Form trigger states
+            const [showMeetingModal, setShowMeetingModal] = useState(false);
+            const [showInspectionModal, setShowInspectionModal] = useState(false);
+            const [showFindingModal, setShowFindingModal] = useState(false);
+            const [showTrainingModal, setShowTrainingModal] = useState(false);
+            const [showAttendeeModal, setShowAttendeeModal] = useState(false);
+            const [showAccidentModal, setShowAccidentModal] = useState(false);
+
+            // Form Fields State
+            const [meetingForm, setMeetingForm] = useState({ title: '', type: 'ORDINARIA', date: '', description: '', attendees: '' });
+            const [commitmentForm, setCommitmentForm] = useState({ description: '', responsible_name: '', due_date: '' });
+            const [inspectionForm, setInspectionForm] = useState({ title: '', planned_date: '', conducted_date: '', inspector_name: '' });
+            const [findingForm, setFindingForm] = useState({ description: '', risk_level: 'MEDIO', due_date: '', corrective_measure: '' });
+            const [trainingForm, setTrainingForm] = useState({ topic: '', planned_date: '', conducted_date: '', hours: 1 });
+            const [attendeeForm, setAttendeeForm] = useState({ employee_name: '', employee_run: '', status: 'APROBADO' });
+            const [accidentForm, setAccidentForm] = useState({
+                employee_name: '', date: '', accident_type: 'LEVE', description: '',
+                why1: '', why2: '', why3: '', why4: '', why5: '',
+                measure1: '', measure1Date: '', measure2: '', measure2Date: ''
+            });
+
+            // LocalStorage sync
+            useEffect(() => {
+                const cached = localStorage.getItem('cphs_store_demo_v2');
+                if (cached) {
+                    const parsed = JSON.parse(cached);
+                    setMeetings(parsed.meetings);
+                    setCommitments(parsed.commitments);
+                    setInspections(parsed.inspections);
+                    setFindings(parsed.findings);
+                    setTrainings(parsed.trainings);
+                    setCertificates(parsed.training_employees || parsed.certificates);
+                    setAccidents(parsed.accidents);
+                    setAnnualPlan(parsed.annual_plan);
+                }
+            }, []);
+
+            const triggerSaveState = (updatedFields) => {
+                const currentStore = {
+                    meetings: updatedFields.meetings || meetings,
+                    commitments: updatedFields.commitments || commitments,
+                    inspections: updatedFields.inspections || inspections,
+                    findings: updatedFields.findings || findings,
+                    trainings: updatedFields.trainings || trainings,
+                    training_employees: updatedFields.certificates || certificates,
+                    accidents: updatedFields.accidents || accidents,
+                    annual_plan: updatedFields.annualPlan || annualPlan
+                };
+                localStorage.setItem('cphs_store_demo_v2', JSON.stringify(currentStore));
+            };
+
+            // METRICAS EN TIEMPO REAL
+            const stats = useMemo(() => {
+                const currentMonth = new Date().getMonth() + 1;
+                
+                const monthTasks = annualPlan.filter(t => t.month === currentMonth);
+                const completedMonthTasks = monthTasks.filter(t => t.status === 'COMPLETADO');
+                const complianceMonth = monthTasks.length > 0 ? Math.round((completedMonthTasks.length / monthTasks.length) * 100) : 0;
+
+                const yearTasks = annualPlan.filter(t => t.month <= currentMonth);
+                const completedYearTasks = yearTasks.filter(t => t.status === 'COMPLETADO');
+                const complianceYear = yearTasks.length > 0 ? Math.round((completedYearTasks.length / yearTasks.length) * 100) : 0;
+
+                const meetCom = meetings.filter(m => m.status === 'COMPLETADA').length;
+                const inspCom = inspections.filter(i => i.status === 'COMPLETADA').length;
+                const trainCom = trainings.filter(t => t.status === 'COMPLETADA').length;
+
+                let totalHH = 0;
+                trainings.forEach(t => {
+                    if (t.status === 'COMPLETADA') {
+                        const count = certificates.filter(c => c.training_id === t.id).length || t.attendee_count || 0;
+                        totalHH += (t.hours * count);
+                    }
+                });
+
+                const completedComs = commitments.filter(c => c.status === 'COMPLETADO').length;
+                const totalComs = commitments.length;
+
+                return {
+                    complianceMonth,
+                    complianceYear,
+                    meetings: meetCom,
+                    inspections: inspCom,
+                    trainings: trainCom,
+                    totalHoursHomme: totalHH,
+                    commitments: { completed: completedComs, total: totalComs }
+                };
+            }, [meetings, commitments, inspections, trainings, certificates, annualPlan]);
+
+            const alerts = useMemo(() => {
+                const upcomingCommitments = commitments.filter(c => c.status === 'PENDIENTE').slice(0, 4);
+                const criticalFindings = findings.filter(f => f.status === 'ABIERTO' && (f.risk_level === 'CRITICO' || f.risk_level === 'ALTO'));
+                return { upcomingCommitments, criticalFindings };
+            }, [commitments, findings]);
+
+            const filteredCertificates = useMemo(() => {
+                if (!certSearchQuery) return certificates;
+                const q = certSearchQuery.toLowerCase();
+                return certificates.filter(c => 
+                    c.employee_name.toLowerCase().includes(q) || 
+                    c.employee_run.toLowerCase().includes(q) ||
+                    (c.training_topic && c.training_topic.toLowerCase().includes(q))
+                );
+            }, [certificates, certSearchQuery]);
+
+            // ACCIONES
+            const toggleAnnualTask = (taskId) => {
+                const updatedPlan = annualPlan.map(t => {
+                    if (t.id === taskId) return { ...t, status: t.status === 'COMPLETADO' ? 'PENDIENTE' : 'COMPLETADO' };
+                    return t;
+                });
+                setAnnualPlan(updatedPlan);
+                triggerSaveState({ annualPlan: updatedPlan });
+            };
+
+            const toggleCommitment = (comId) => {
+                const updatedCommitments = commitments.map(c => {
+                    if (c.id === comId) {
+                        const nextStatus = c.status === 'COMPLETADO' ? 'PENDIENTE' : 'COMPLETADO';
+                        return { 
+                            ...c, status: nextStatus,
+                            closed_at: nextStatus === 'COMPLETADO' ? new Date().toISOString().split('T')[0] : null
+                        };
+                    }
+                    return c;
+                });
+                setCommitments(updatedCommitments);
+                triggerSaveState({ commitments: updatedCommitments });
+            };
+
+            const handleCreateMeeting = (e) => {
+                e.preventDefault();
+                const newId = meetings.length + 1;
+                const newMeeting = {
+                    id: newId,
+                    title: meetingForm.title,
+                    type: meetingForm.type,
+                    date: meetingForm.date,
+                    description: meetingForm.description,
+                    attendees: meetingForm.attendees ? meetingForm.attendees.split(',').map(a => a.trim()) : [],
+                    act_file_path: 'uploads/acta_mensual.pdf',
+                    status: 'COMPLETADA'
+                };
+
+                const updatedMeetings = [newMeeting, ...meetings];
+                setMeetings(updatedMeetings);
+
+                let updatedCommitments = [...commitments];
+                if (meetingForm.title) {
+                    const initialCommitment = {
+                        id: commitments.length + 1,
+                        meeting_id: newId,
+                        description: `Presentar acuerdos de la sesión: ${meetingForm.title}`,
+                        responsible_name: 'Secretario CPHS',
+                        due_date: new Date(Date.now() + 10*24*60*60*1000).toISOString().split('T')[0],
+                        status: 'PENDIENTE',
+                        closed_at: null
+                    };
+                    updatedCommitments = [initialCommitment, ...commitments];
+                    setCommitments(updatedCommitments);
+                }
+
+                triggerSaveState({ meetings: updatedMeetings, commitments: updatedCommitments });
+                setMeetingForm({ title: '', type: 'ORDINARIA', date: '', description: '', attendees: '' });
+                setShowMeetingModal(false);
+                setSelectedMeeting(newMeeting);
+            };
+
+            const handleCreateInspection = (e) => {
+                e.preventDefault();
+                const newId = inspections.length + 1;
+                const newInsp = {
+                    id: newId,
+                    title: inspectionForm.title,
+                    planned_date: inspectionForm.planned_date,
+                    conducted_date: inspectionForm.conducted_date || null,
+                    inspector_name: inspectionForm.inspector_name,
+                    report_file_path: inspectionForm.conducted_date ? 'mock_report.pdf' : null,
+                    status: inspectionForm.conducted_date ? 'COMPLETADA' : 'PENDIENTE'
+                };
+
+                const updatedInsps = [newInsp, ...inspections];
+                setInspections(updatedInsps);
+                triggerSaveState({ inspections: updatedInsps });
+                setInspectionForm({ title: '', planned_date: '', conducted_date: '', inspector_name: '' });
+                setShowInspectionModal(false);
+                setSelectedInspection(newInsp);
+            };
+
+            const handleCreateFinding = (e) => {
+                e.preventDefault();
+                if (!selectedInspection) return;
+
+                const newId = findings.length + 1;
+                const newFinding = {
+                    id: newId,
+                    inspection_id: selectedInspection.id,
+                    description: findingForm.description,
+                    risk_level: findingForm.risk_level,
+                    corrective_measure: findingForm.corrective_measure,
+                    due_date: findingForm.due_date,
+                    status: 'ABIERTO',
+                    evidence_file_path: 'mock_evidence.jpg',
+                    closed_at: null
+                };
+
+                const updatedFindings = [newFinding, ...findings];
+                setFindings(updatedFindings);
+                triggerSaveState({ findings: updatedFindings });
+                setFindingForm({ description: '', risk_level: 'MEDIO', due_date: '', corrective_measure: '' });
+                setShowFindingModal(false);
+            };
+
+            const handleCloseFinding = (findingId) => {
+                const updatedFindings = findings.map(f => {
+                    if (f.id === findingId) return { ...f, status: 'CERRADO', closed_at: new Date().toISOString().split('T')[0] };
+                    return f;
+                });
+                setFindings(updatedFindings);
+                triggerSaveState({ findings: updatedFindings });
+            };
+
+            const handleCreateTraining = (e) => {
+                e.preventDefault();
+                const newId = trainings.length + 1;
+                const newTraining = {
+                    id: newId,
+                    topic: trainingForm.topic,
+                    planned_date: trainingForm.planned_date,
+                    conducted_date: trainingForm.conducted_date || null,
+                    hours: Number(trainingForm.hours),
+                    attendee_count: 0,
+                    status: trainingForm.conducted_date ? 'COMPLETADA' : 'PENDIENTE',
+                    attendance_list_file_path: 'mock_asist.pdf',
+                    photo_file_path: 'mock_photo.jpg',
+                    material_file_path: null
+                };
+
+                const updatedTrainings = [newTraining, ...trainings];
+                setTrainings(updatedTrainings);
+                triggerSaveState({ trainings: updatedTrainings });
+                setTrainingForm({ topic: '', planned_date: '', conducted_date: '', hours: 1 });
+                setShowTrainingModal(false);
+                setSelectedTraining(newTraining);
+            };
+
+            const handleAddAttendee = (e) => {
+                e.preventDefault();
+                if (!selectedTraining) return;
+
+                const newId = certificates.length + 1;
+                const newCert = {
+                    id: newId,
+                    training_id: selectedTraining.id,
+                    employee_name: attendeeForm.employee_name,
+                    employee_run: attendeeForm.employee_run,
+                    certificate_file_path: 'mock_cert.pdf',
+                    status: attendeeForm.status,
+                    training_topic: selectedTraining.topic,
+                    training_date: selectedTraining.conducted_date || new Date().toISOString().split('T')[0]
+                };
+
+                const updatedCerts = [newCert, ...certificates];
+                setCertificates(updatedCerts);
+
+                const updatedTrainings = trainings.map(t => {
+                    if (t.id === selectedTraining.id) return { ...t, attendee_count: (t.attendee_count || 0) + 1 };
+                    return t;
+                });
+                setTrainings(updatedTrainings);
+
+                triggerSaveState({ certificates: updatedCerts, trainings: updatedTrainings });
+                setAttendeeForm({ employee_name: '', employee_run: '', status: 'APROBADO' });
+                setShowAttendeeModal(false);
+            };
+
+            const handleCreateAccident = (e) => {
+                e.preventDefault();
+                const newId = accidents.length + 1;
+                
+                const whyAnalysis = [
+                    accidentForm.why1, accidentForm.why2, accidentForm.why3, accidentForm.why4, accidentForm.why5
+                ].filter(Boolean);
+
+                const correctiveActions = [];
+                if (accidentForm.measure1) {
+                    correctiveActions.push({ 
+                        measure: accidentForm.measure1, 
+                        due_date: accidentForm.measure1Date || '2026-06-30', 
+                        status: 'PENDIENTE', date_closed: null 
+                    });
+                }
+
+                const newAcc = {
+                    id: newId,
+                    employee_name: accidentForm.employee_name,
+                    date: accidentForm.date,
+                    accident_type: accidentForm.accident_type,
+                    description: accidentForm.description,
+                    root_cause_method: '5_WHYS',
+                    root_cause_analysis: whyAnalysis,
+                    corrective_measures: correctiveActions,
+                    status: 'ABIERTO'
+                };
+
+                const updatedAccs = [newAcc, ...accidents];
+                setAccidents(updatedAccs);
+
+                const eventMonth = new Date(accidentForm.date).getMonth() + 1;
+                const newTask = {
+                    id: annualPlan.length + 1,
+                    task_name: `Investigación Accidente: ${accidentForm.employee_name}`,
+                    month: eventMonth || 5,
+                    type: 'AUDITORIA',
+                    status: 'COMPLETADO',
+                    responsible: 'Comité Paritario'
+                };
+                const updatedPlan = [...annualPlan, newTask];
+                setAnnualPlan(updatedPlan);
+
+                triggerSaveState({ accidents: updatedAccs, annualPlan: updatedPlan });
+                setAccidentForm({
+                    employee_name: '', date: '', accident_type: 'LEVE', description: '',
+                    why1: '', why2: '', why3: '', why4: '', why5: '',
+                    measure1: '', measure1Date: '', measure2: '', measure2Date: ''
+                });
+                setShowAccidentModal(false);
+                setSelectedAccident(newAcc);
+            };
+
+            const toggleAccidentMeasure = (accId, measureIndex) => {
+                const updatedAccidents = accidents.map(a => {
+                    if (a.id === accId) {
+                        const nextMeasures = a.corrective_measures.map((m, idx) => {
+                            if (idx === measureIndex) {
+                                const nextStatus = m.status === 'COMPLETADA' ? 'PENDIENTE' : 'COMPLETADA';
+                                return {
+                                    ...m, status: nextStatus,
+                                    date_closed: nextStatus === 'COMPLETADA' ? new Date().toISOString().split('T')[0] : null
+                                };
+                            }
+                            return m;
+                        });
+                        
+                        const allClosed = nextMeasures.every(m => m.status === 'COMPLETADA');
+                        return {
+                            ...a, corrective_measures: nextMeasures,
+                            status: allClosed ? 'CERRADO' : 'ABIERTO'
+                        };
+                    }
+                    return a;
+                });
+
+                setAccidents(updatedAccidents);
+                triggerSaveState({ accidents: updatedAccidents });
+                
+                if (selectedAccident && selectedAccident.id === accId) {
+                    setSelectedAccident(updatedAccidents.find(a => a.id === accId));
+                }
+            };
+
+            return (
+                <div className="flex flex-col min-h-screen bg-[#020617] text-slate-100 font-sans pb-24">
+                    
+                    {/* APP HEADER */}
+                    <header className="h-16 border-b border-slate-800/80 bg-[#070b19]/80 backdrop-blur-md px-6 flex items-center justify-between shrink-0 sticky top-0 z-40">
+                        <div className="flex items-center space-x-2.5">
+                            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
+                                <Icon name="shield" className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h1 className="font-extrabold text-sm tracking-tight text-white font-sans">CPHS Móvil</h1>
+                                <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest block">Cumplimiento Paritario</span>
+                            </div>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider font-sans">192.168.1.169</span>
+                        </div>
+                    </header>
+
+                    {/* CONTENT AREA */}
+                    <div className="p-5 flex-1 space-y-6">
+                        
+                        {/* =========================================================
+                            MOBILE TAB: DASHBOARD
+                            ========================================================= */}
+                        {activeTab === 'dashboard' && (
+                            <div className="space-y-6">
+                                {/* Title bar */}
+                                <div>
+                                    <h2 className="text-2xl font-extrabold text-white tracking-tight font-sans">Panel de Control</h2>
+                                    <p className="text-xs text-slate-400 mt-0.5">Control de cumplimiento general del CPHS.</p>
+                                </div>
+
+                                {/* Compact 2-column KPI Grid */}
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="glass-card rounded-2xl p-4 flex items-center justify-between col-span-2">
+                                        <div>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Cumplimiento del Mes</span>
+                                            <span className="text-2xl font-extrabold text-white mt-1 block font-sans">{stats.complianceMonth}%</span>
+                                        </div>
+                                        <div className="relative w-14 h-14 flex items-center justify-center shrink-0">
+                                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                                <path className="text-slate-800" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                                <path className="text-emerald-400 transition-all" strokeWidth="4" strokeDasharray={`${stats.complianceMonth}, 100`} strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                            </svg>
+                                            <span className="absolute text-[10px] font-extrabold text-white font-sans">{stats.complianceMonth}%</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="glass-card rounded-2xl p-4 flex items-center justify-between col-span-2">
+                                        <div>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Cumplimiento del Año</span>
+                                            <span className="text-2xl font-extrabold text-white mt-1 block font-sans">{stats.complianceYear}%</span>
+                                        </div>
+                                        <div className="relative w-14 h-14 flex items-center justify-center shrink-0">
+                                            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                                                <path className="text-slate-800" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                                <path className="text-cyan-400 transition-all" strokeWidth="4" strokeDasharray={`${stats.complianceYear}, 100`} strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                                            </svg>
+                                            <span className="absolute text-[10px] font-extrabold text-white font-sans">{stats.complianceYear}%</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="glass-card rounded-2xl p-4 flex items-center space-x-3">
+                                        <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                                            <Icon name="checkcircle" className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase block tracking-wider">Compromisos</span>
+                                            <span className="text-sm font-extrabold text-white font-sans">{stats.commitments.completed} / {stats.commitments.total}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="glass-card rounded-2xl p-4 flex items-center space-x-3">
+                                        <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
+                                            <Icon name="graduation" className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <span className="text-[9px] font-bold text-slate-400 uppercase block tracking-wider">Capacitaciones</span>
+                                            <span className="text-sm font-extrabold text-white font-sans">{stats.totalHoursHomme} HH</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Active Alerts (Mobile friendly list) */}
+                                <div className="glass-card rounded-2xl p-5 space-y-4">
+                                    <div className="flex items-center space-x-2 border-b border-slate-800/80 pb-3">
+                                        <Icon name="alert" className="w-4 h-4 text-amber-500" />
+                                        <h3 className="text-sm font-bold text-white">Alertas de Cumplimiento</h3>
+                                    </div>
+                                    
+                                    <div className="space-y-3">
+                                        {alerts.criticalFindings.length === 0 && alerts.upcomingCommitments.length === 0 && (
+                                            <p className="text-[11px] text-slate-500 italic text-center py-2">No hay alertas activas en tu sector.</p>
+                                        )}
+
+                                        {alerts.criticalFindings.map(f => (
+                                            <div key={f.id} className="p-3.5 rounded-xl bg-rose-500/5 border border-rose-500/25 flex flex-col justify-between gap-2">
+                                                <div className="flex items-center justify-between text-[9px] font-bold">
+                                                    <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400">RIESGO CRÍTICO</span>
+                                                    <span className="text-slate-500">Plazo: {f.due_date}</span>
+                                                </div>
+                                                <p className="text-xs font-semibold text-slate-200">{f.description}</p>
+                                                <button 
+                                                    onClick={() => handleCloseFinding(f.id)}
+                                                    className="self-end text-[10px] text-rose-400 hover:text-rose-300 font-extrabold"
+                                                >
+                                                    Marcar Solucionado
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                        {alerts.upcomingCommitments.map(c => (
+                                            <div key={c.id} className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/10 flex flex-col justify-between gap-2">
+                                                <div className="flex items-center justify-between text-[9px] font-bold">
+                                                    <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">COMPROMISO REUNIÓN</span>
+                                                    <span className="text-slate-500">Límite: {c.due_date}</span>
+                                                </div>
+                                                <p className="text-xs font-semibold text-slate-200">{c.description}</p>
+                                                <button 
+                                                    onClick={() => toggleCommitment(c.id)}
+                                                    className="self-end text-[10px] text-emerald-400 hover:text-emerald-300 font-extrabold"
+                                                >
+                                                    Marcar Resuelto
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* =========================================================
+                            MOBILE TAB: MEETINGS (REUNIONES Y COMPROMISOS)
+                            ========================================================= */}
+                        {activeTab === 'meetings' && (
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h2 className="text-2xl font-extrabold text-white tracking-tight">Reuniones</h2>
+                                        <p className="text-xs text-slate-400">Actas y compromisos legales.</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => setShowMeetingModal(true)}
+                                        className="btn-gradient p-2 rounded-xl"
+                                    >
+                                        <Icon name="plus" className="w-5 h-5" />
+                                    </button>
+                                </div>
+
+                                {/* Stacked Meeting List */}
+                                <div className="space-y-3">
+                                    {meetings.map(m => {
+                                        const isSelected = selectedMeeting?.id === m.id;
+                                        return (
+                                            <div 
+                                                key={m.id}
+                                                className={`p-4 rounded-2xl border transition-all ${
+                                                    isSelected 
+                                                        ? 'bg-emerald-500/15 border-emerald-500/40' 
+                                                        : 'bg-slate-900/40 border-slate-800'
+                                                }`}
+                                            >
+                                                <div className="flex items-center justify-between text-[10px] mb-1.5 font-bold">
+                                                    <span className={`px-1.5 py-0.5 rounded ${
+                                                        m.type === 'ORDINARIA' ? 'bg-cyan-500/15 text-cyan-400' : 'bg-purple-500/15 text-purple-400'
+                                                    }`}>
+                                                        {m.type}
+                                                    </span>
+                                                    <span className="text-slate-500">{m.date}</span>
+                                                </div>
+                                                
+                                                <h4 
+                                                    onClick={() => setSelectedMeeting(isSelected ? null : m)}
+                                                    className="font-bold text-sm text-slate-100 cursor-pointer flex items-center justify-between"
+                                                >
+                                                    <span>{m.title}</span>
+                                                    <Icon name="chevronRight" className={`w-4 h-4 text-slate-400 transform transition-transform ${isSelected ? 'rotate-90' : ''}`} />
+                                                </h4>
+
+                                                {/* Expanded Details on Mobile Sheet-in-place */}
+                                                {isSelected && (
+                                                    <div className="mt-4 pt-4 border-t border-slate-800/80 space-y-4 animate-fadeIn">
+                                                        <p className="text-xs text-slate-300 leading-relaxed">{m.description}</p>
+                                                        
+                                                        {m.attendees && m.attendees.length > 0 && (
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {m.attendees.map((a, idx) => (
+                                                                    <span key={idx} className="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-400 font-medium">{a}</span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+
+                                                        {/* Commitments dynamic list */}
+                                                        <div className="space-y-2.5 pt-2">
+                                                            <div className="flex justify-between items-center text-xs font-bold text-slate-200">
+                                                                <span>Compromisos Asignados</span>
+                                                                <button 
+                                                                    onClick={() => {
+                                                                        const desc = prompt("Descripción del acuerdo:");
+                                                                        const resp = prompt("Nombre del responsable:");
+                                                                        if (desc && resp) {
+                                                                            const newCom = {
+                                                                                id: commitments.length + 1,
+                                                                                meeting_id: m.id,
+                                                                                description: desc,
+                                                                                responsible_name: resp,
+                                                                                due_date: new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0],
+                                                                                status: 'PENDIENTE',
+                                                                                closed_at: null
+                                                                            };
+                                                                            const updated = [newCom, ...commitments];
+                                                                            setCommitments(updated);
+                                                                            triggerSaveState({ commitments: updated });
+                                                                        }
+                                                                    }}
+                                                                    className="text-emerald-400 font-bold"
+                                                                >
+                                                                    + Agregar
+                                                                </button>
+                                                            </div>
+
+                                                            {commitments.filter(c => c.meeting_id === m.id).map(c => {
+                                                                const isDone = c.status === 'COMPLETADO';
+                                                                return (
+                                                                    <div key={c.id} className="p-3 rounded-xl bg-slate-950 border border-slate-900 flex items-start space-x-3">
+                                                                        <button 
+                                                                            onClick={() => toggleCommitment(c.id)}
+                                                                            className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 ${
+                                                                                isDone ? 'bg-emerald-500 border-emerald-400 text-white' : 'border-slate-700'
+                                                                            }`}
+                                                                        >
+                                                                            {isDone && <Icon name="check" className="w-3.5 h-3.5" />}
+                                                                        </button>
+                                                                        <div className="flex-1">
+                                                                            <p className={`text-xs font-semibold ${isDone ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{c.description}</p>
+                                                                            <span className="text-[9px] text-slate-500 font-semibold block mt-0.5">Resp: {c.responsible_name} | Plazo: {c.due_date}</span>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* =========================================================
+                            MOBILE TAB: INSPECTIONS (INSPECCIONES Y AUDITORIAS)
+                            ========================================================= */}
+                        {activeTab === 'inspections' && (
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h2 className="text-2xl font-extrabold text-white tracking-tight">Inspecciones</h2>
+                                        <p className="text-xs text-slate-400">Control de condiciones inseguras.</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => setShowInspectionModal(true)}
+                                        className="btn-gradient p-2 rounded-xl"
+                                    >
+                                        <Icon name="plus" className="w-5 h-5" />
+                                    </button>
+                                </div>
+
+                                <div className="space-y-3">
+                                    {inspections.map(insp => {
+                                        const isSelected = selectedInspection?.id === insp.id;
+                                        const countFindings = findings.filter(f => f.inspection_id === insp.id).length;
+                                        const countOpen = findings.filter(f => f.inspection_id === insp.id && f.status === 'ABIERTO').length;
+
+                                        return (
+                                            <div 
+                                                key={insp.id}
+                                                className={`p-4 rounded-2xl border transition-all ${
+                                                    isSelected 
+                                                        ? 'bg-emerald-500/15 border-emerald-500/40' 
+                                                        : 'bg-slate-900/40 border-slate-800'
+                                                }`}
+                                            >
+                                                <div className="flex items-center justify-between text-[10px] mb-1.5 font-bold">
+                                                    <span className={`px-1.5 py-0.5 rounded ${
+                                                        insp.status === 'COMPLETADA' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
+                                                    }`}>
+                                                        {insp.status === 'COMPLETADA' ? 'Realizada' : 'Programada'}
+                                                    </span>
+                                                    <span className="text-slate-500">{insp.planned_date}</span>
+                                                </div>
+
+                                                <h4 
+                                                    onClick={() => setSelectedInspection(isSelected ? null : insp)}
+                                                    className="font-bold text-sm text-slate-100 cursor-pointer flex items-center justify-between"
+                                                >
+                                                    <span>{insp.title}</span>
+                                                    <Icon name="chevronRight" className={`w-4 h-4 text-slate-400 transform transition-transform ${isSelected ? 'rotate-90' : ''}`} />
+                                                </h4>
+
+                                                {isSelected && (
+                                                    <div className="mt-4 pt-4 border-t border-slate-800/80 space-y-4 animate-fadeIn">
+                                                        <div className="flex justify-between items-center text-xs text-slate-400">
+                                                            <span>Inspector: <strong>{insp.inspector_name}</strong></span>
+                                                            {insp.status === 'PENDIENTE' && (
+                                                                <button 
+                                                                    onClick={() => {
+                                                                        const updated = inspections.map(i => {
+                                                                            if (i.id === insp.id) return { ...i, status: 'COMPLETADA', conducted_date: new Date().toISOString().split('T')[0] };
+                                                                            return i;
+                                                                        });
+                                                                        setInspections(updated);
+                                                                        setSelectedInspection(updated.find(i => i.id === insp.id));
+                                                                        triggerSaveState({ inspections: updated });
+                                                                    }}
+                                                                    className="text-emerald-400 font-bold hover:underline"
+                                                                >
+                                                                    Marcar Ejecutada
+                                                                </button>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Findings list nested mobile */}
+                                                        <div className="space-y-3 pt-2">
+                                                            <div className="flex justify-between items-center text-xs font-bold text-slate-200">
+                                                                <span>Desviaciones Observadas</span>
+                                                                <button 
+                                                                    onClick={() => setShowFindingModal(true)}
+                                                                    className="text-emerald-400 font-bold"
+                                                                >
+                                                                    + Reportar
+                                                                </button>
+                                                            </div>
+
+                                                            {findings.filter(f => f.inspection_id === insp.id).length === 0 ? (
+                                                                <p className="text-[11px] text-slate-500 italic">No se reportaron hallazgos en este recorrido.</p>
+                                                            ) : (
+                                                                findings.filter(f => f.inspection_id === insp.id).map(f => {
+                                                                    const isOpen = f.status === 'ABIERTO';
+                                                                    return (
+                                                                        <div key={f.id} className="p-3.5 rounded-xl bg-slate-950 border border-slate-900 space-y-2">
+                                                                            <div className="flex justify-between items-center text-[9px] font-bold">
+                                                                                <span className={`px-1 rounded ${
+                                                                                    f.risk_level === 'CRITICO' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'
+                                                                                }`}>
+                                                                                    RIESGO {f.risk_level}
+                                                                                </span>
+                                                                                <span className="text-slate-500 font-sans">Plazo: {f.due_date}</span>
+                                                                            </div>
+                                                                            <h5 className="font-bold text-xs text-slate-200">{f.description}</h5>
+                                                                            <p className="text-[10px] text-slate-400"><strong className="text-slate-300">Medida:</strong> {f.corrective_measure}</p>
+                                                                            
+                                                                            <div className="flex justify-end pt-1">
+                                                                                {isOpen ? (
+                                                                                    <button 
+                                                                                        onClick={() => handleCloseFinding(f.id)}
+                                                                                        className="px-2.5 py-1 rounded-md bg-emerald-500 text-white text-[10px] font-bold shadow"
+                                                                                    >
+                                                                                        Cerrar Hallazgo
+                                                                                    </button>
+                                                                                ) : (
+                                                                                    <span className="text-[10px] text-emerald-400 font-bold flex items-center space-x-1">
+                                                                                        <Icon name="check" className="w-3 h-3" />
+                                                                                        <span>Cerrado {f.closed_at}</span>
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                        </div>
+                                                                    );
+                                                                })
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* =========================================================
+                            MOBILE TAB: TRAININGS & CERTIFICATES Matrix
+                            ========================================================= */}
+                        {activeTab === 'trainings' && (
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h2 className="text-2xl font-extrabold text-white tracking-tight">Capacitaciones</h2>
+                                        <p className="text-xs text-slate-400">Acreditaciones y horas formativas.</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => setShowTrainingModal(true)}
+                                        className="btn-gradient p-2 rounded-xl"
+                                    >
+                                        <Icon name="plus" className="w-5 h-5" />
+                                    </button>
+                                </div>
+
+                                <div className="space-y-3">
+                                    {trainings.map(t => {
+                                        const isSelected = selectedTraining?.id === t.id;
+                                        return (
+                                            <div 
+                                                key={t.id}
+                                                className={`p-4 rounded-2xl border transition-all ${
+                                                    isSelected 
+                                                        ? 'bg-emerald-500/15 border-emerald-500/40' 
+                                                        : 'bg-slate-900/40 border-slate-800'
+                                                }`}
+                                            >
+                                                <div className="flex items-center justify-between text-[10px] mb-1.5 font-bold">
+                                                    <span className={`px-1.5 py-0.5 rounded ${
+                                                        t.status === 'COMPLETADA' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
+                                                    }`}>
+                                                        {t.status === 'COMPLETADA' ? 'Realizado' : 'Programado'}
+                                                    </span>
+                                                    <span className="text-slate-500">{t.planned_date}</span>
+                                                </div>
+
+                                                <h4 
+                                                    onClick={() => setSelectedTraining(isSelected ? null : t)}
+                                                    className="font-bold text-sm text-slate-100 cursor-pointer flex items-center justify-between"
+                                                >
+                                                    <span>{t.topic}</span>
+                                                    <Icon name="chevronRight" className={`w-4 h-4 text-slate-400 transform transition-transform ${isSelected ? 'rotate-90' : ''}`} />
+                                                </h4>
+
+                                                {isSelected && (
+                                                    <div className="mt-4 pt-4 border-t border-slate-800/80 space-y-4 animate-fadeIn">
+                                                        <div className="flex justify-between items-center text-xs text-slate-400">
+                                                            <span>Duración: <strong>{t.hours} horas</strong></span>
+                                                            <span>Asistentes: <strong>{t.attendee_count}</strong></span>
+                                                        </div>
+
+                                                        {/* Attendees sublist mobile */}
+                                                        <div className="space-y-3 pt-2">
+                                                            <div className="flex justify-between items-center text-xs font-bold text-slate-200">
+                                                                <span>Trabajadores Acreditados</span>
+                                                                {t.status === 'COMPLETADA' && (
+                                                                    <button 
+                                                                        onClick={() => setShowAttendeeModal(true)}
+                                                                        className="text-emerald-400 font-bold"
+                                                                    >
+                                                                        + Acreditar
+                                                                    </button>
+                                                                )}
+                                                            </div>
+
+                                                            {certificates.filter(c => c.training_id === t.id).length === 0 ? (
+                                                                <p className="text-[11px] text-slate-500 italic">No hay registros de firmas individuales.</p>
+                                                            ) : (
+                                                                <div className="grid grid-cols-1 gap-2">
+                                                                    {certificates.filter(c => c.training_id === t.id).map(c => (
+                                                                        <div key={c.id} className="p-3 rounded-xl bg-slate-950 border border-slate-900 flex justify-between items-center">
+                                                                            <div>
+                                                                                <h5 className="font-bold text-xs text-slate-200">{c.employee_name}</h5>
+                                                                                <span className="text-[9px] text-slate-500 font-sans block">RUN: {c.employee_run}</span>
+                                                                            </div>
+                                                                            <button 
+                                                                                onClick={() => triggerCertificatePrint(c)}
+                                                                                className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                                                            >
+                                                                                <Icon name="award" className="w-4 h-4" />
+                                                                            </button>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* =========================================================
+                            MOBILE TAB: CERTIFICATES SEARCH (BUSCADOR DE CERTIFICADOS)
+                            ========================================================= */}
+                        {activeTab === 'certificates' && (
+                            <div className="space-y-6">
+                                <div>
+                                    <h2 className="text-2xl font-extrabold text-white tracking-tight">Buscador</h2>
+                                    <p className="text-xs text-slate-400">Descarga de certificados individuales.</p>
+                                </div>
+
+                                <div className="relative">
+                                    <div className="absolute left-3 top-3 text-slate-500">
+                                        <Icon name="search" className="w-5 h-5" />
+                                    </div>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Buscar por Nombre o RUN (ej: 12.345.678-9)..."
+                                        value={certSearchQuery}
+                                        onChange={(e) => setCertSearchQuery(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none"
+                                    />
+                                </div>
+
+                                <div className="space-y-3">
+                                    {filteredCertificates.map(c => (
+                                        <div key={c.id} className="glass-card rounded-2xl p-4 space-y-3">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <h4 className="font-bold text-sm text-slate-100">{c.employee_name}</h4>
+                                                    <span className="text-[10px] text-slate-500 block font-sans">RUN: {c.employee_run}</span>
+                                                </div>
+                                                <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[9px] font-bold">VIGENTE</span>
+                                            </div>
+                                            <div className="pt-2.5 border-t border-slate-800/80 text-[11px] text-slate-400">
+                                                <p className="font-semibold text-slate-200 line-clamp-1">{c.training_topic}</p>
+                                                <span className="text-[9px] font-semibold text-slate-500">Fecha: {c.training_date}</span>
+                                            </div>
+                                            <button 
+                                                onClick={() => triggerCertificatePrint(c)}
+                                                className="w-full py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-bold text-slate-300 hover:text-white flex items-center justify-center space-x-1.5"
+                                            >
+                                                <Icon name="download" className="w-4 h-4 text-emerald-400" />
+                                                <span>Imprimir Certificado</span>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* =========================================================
+                            MOBILE TAB: ACCIDENTS (INVESTIGACIÓN DE ACCIDENTES - 5 PORQUÉS)
+                            ========================================================= */}
+                        {activeTab === 'accidents' && (
+                            <div className="space-y-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h2 className="text-2xl font-extrabold text-white tracking-tight">Accidentes</h2>
+                                        <p className="text-xs text-slate-400">Investigaciones con 5 Porqués.</p>
+                                    </div>
+                                    <button 
+                                        onClick={() => setShowAccidentModal(true)}
+                                        className="btn-gradient p-2 rounded-xl"
+                                    >
+                                        <Icon name="plus" className="w-5 h-5" />
+                                    </button>
+                                </div>
+
+                                <div className="space-y-3">
+                                    {accidents.map(a => {
+                                        const isSelected = selectedAccident?.id === a.id;
+                                        const completed = a.corrective_measures.filter(m => m.status === 'COMPLETADA').length;
+                                        const total = a.corrective_measures.length;
+
+                                        return (
+                                            <div 
+                                                key={a.id}
+                                                className={`p-4 rounded-2xl border transition-all ${
+                                                    isSelected 
+                                                        ? 'bg-emerald-500/15 border-emerald-500/40' 
+                                                        : 'bg-slate-900/40 border-slate-800'
+                                                }`}
+                                            >
+                                                <div className="flex items-center justify-between text-[10px] mb-1.5 font-bold">
+                                                    <span className={`px-1.5 py-0.5 rounded ${
+                                                        a.accident_type === 'LEVE' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-red-500/10 text-red-400'
+                                                    }`}>
+                                                        {a.accident_type}
+                                                    </span>
+                                                    <span className="text-slate-500">{a.date.split(' ')[0]}</span>
+                                                </div>
+
+                                                <h4 
+                                                    onClick={() => setSelectedAccident(isSelected ? null : a)}
+                                                    className="font-bold text-sm text-slate-100 cursor-pointer flex items-center justify-between font-sans"
+                                                >
+                                                    <span>{a.employee_name}</span>
+                                                    <Icon name="chevronRight" className={`w-4 h-4 text-slate-400 transform transition-transform ${isSelected ? 'rotate-90' : ''}`} />
+                                                </h4>
+
+                                                {isSelected && (
+                                                    <div className="mt-4 pt-4 border-t border-slate-800/80 space-y-4 animate-fadeIn">
+                                                        <p className="text-xs text-slate-300 leading-relaxed bg-slate-950 p-3 rounded-xl border border-slate-900">{a.description}</p>
+                                                        
+                                                        {/* 5 Whys Chain Mobile */}
+                                                        <div className="space-y-2.5">
+                                                            <h5 className="font-bold text-xs text-white">Análisis de Causa Raíz (5 Porqués)</h5>
+                                                            <div className="relative pl-5 border-l border-emerald-500/30 space-y-3">
+                                                                {a.root_cause_analysis.map((why, idx) => (
+                                                                    <div key={idx} className="relative">
+                                                                        <span className="absolute -left-[26px] top-0 w-3.5 h-3.5 rounded-full bg-slate-950 border border-emerald-400 flex items-center justify-center text-[9px] font-bold text-emerald-400">
+                                                                            {idx+1}
+                                                                        </span>
+                                                                        <p className="text-xs font-semibold text-slate-200">{why}</p>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Measures list */}
+                                                        <div className="space-y-2 pt-2 border-t border-slate-850">
+                                                            <h5 className="font-bold text-xs text-white">Plan de Medidas Correctivas</h5>
+                                                            {a.corrective_measures.map((m, idx) => {
+                                                                const isDone = m.status === 'COMPLETADA';
+                                                                return (
+                                                                    <div key={idx} className="p-3 rounded-xl bg-slate-950 border border-slate-900 flex items-center justify-between">
+                                                                        <div className="flex items-center space-x-2.5">
+                                                                            <button 
+                                                                                onClick={() => toggleAccidentMeasure(a.id, idx)}
+                                                                                className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
+                                                                                    isDone ? 'bg-emerald-500 border-emerald-400 text-white' : 'border-slate-700'
+                                                                                }`}
+                                                                            >
+                                                                                {isDone && <Icon name="check" className="w-3.5 h-3.5" />}
+                                                                            </button>
+                                                                            <div>
+                                                                                <p className={`text-xs font-semibold ${isDone ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{m.measure}</p>
+                                                                                <span className="text-[9px] text-slate-500 block font-sans">Límite: {m.due_date}</span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* =========================================================
+                            MOBILE TAB: CRONOGRAM (PLAN ANUAL GANTT LIST)
+                            ========================================================= */}
+                        {activeTab === 'cronogram' && (
+                            <div className="space-y-6">
+                                <div>
+                                    <h2 className="text-2xl font-extrabold text-white tracking-tight">Cronograma Anual</h2>
+                                    <p className="text-xs text-slate-400">Plan de trabajo e hitos paritarios.</p>
+                                </div>
+
+                                <div className="space-y-6">
+                                    {[
+                                        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                                        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+                                    ].map((monthName, idx) => {
+                                        const monthNum = idx + 1;
+                                        const monthTasks = annualPlan.filter(t => t.month === monthNum);
+
+                                        if (monthTasks.length === 0) return null;
+
+                                        return (
+                                            <div key={idx} className="space-y-2.5">
+                                                <h4 className="text-xs font-bold text-white uppercase tracking-wider border-l-2 border-emerald-500 pl-2">
+                                                    {monthName}
+                                                </h4>
+                                                
+                                                <div className="space-y-2">
+                                                    {monthTasks.map(t => {
+                                                        const isDone = t.status === 'COMPLETADO';
+                                                        return (
+                                                            <div 
+                                                                key={t.id}
+                                                                className={`p-3 rounded-xl border flex flex-col justify-between space-y-2 transition-all ${
+                                                                    isDone ? 'bg-emerald-500/5 border-emerald-500/10' : 'bg-slate-900/40 border-slate-800'
+                                                                }`}
+                                                            >
+                                                                <div>
+                                                                    <div className="flex justify-between items-center text-[9px] font-bold mb-1">
+                                                                        <span className={`px-1.5 py-0.5 rounded ${
+                                                                            t.type === 'REUNION' ? 'bg-cyan-500/15 text-cyan-400' : 'bg-purple-500/15 text-purple-400'
+                                                                        }`}>
+                                                                            {t.type}
+                                                                        </span>
+                                                                        <span className="text-slate-500 font-sans">RESP: {t.responsible}</span>
+                                                                    </div>
+                                                                    <h5 className="font-semibold text-xs text-slate-200">{t.task_name}</h5>
+                                                                </div>
+
+                                                                <div className="flex justify-between items-center pt-2 border-t border-slate-850">
+                                                                    <span className={`text-[9px] font-bold font-sans ${isDone ? 'text-emerald-400' : 'text-slate-500'}`}>{t.status}</span>
+                                                                    <button
+                                                                        onClick={() => toggleAnnualTask(t.id)}
+                                                                        className={`px-2 py-0.5 rounded-lg text-[9px] font-bold border transition-colors ${
+                                                                            isDone ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-800 text-slate-300 border-slate-700'
+                                                                        }`}
+                                                                    >
+                                                                        {isDone ? 'Pendiente' : 'Completado'}
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
+                    </div>
+
+                    {/* =========================================================
+                        FIXED BOTTOM APP-BAR NAVIGATION (MOBILE FIRST)
+                        ========================================================= */}
+                    <nav className="fixed bottom-0 left-0 right-0 h-16 bg-[#070b19]/90 backdrop-blur-xl border-t border-slate-800/80 z-50 flex justify-around items-center px-2">
+                        {[
+                            { id: 'dashboard', label: 'Inicio', icon: 'dashboard' },
+                            { id: 'meetings', label: 'Sesiones', icon: 'calendar' },
+                            { id: 'inspections', label: 'Auditorías', icon: 'clipboard' },
+                            { id: 'trainings', label: 'Cursos', icon: 'graduation' },
+                            { id: 'certificates', label: 'Buscar', icon: 'search' },
+                            { id: 'accidents', label: 'LOTO', icon: 'activity' },
+                            { id: 'cronogram', label: 'Gantt', icon: 'clock' }
+                        ].map(item => {
+                            const active = activeTab === item.id;
+                            return (
+                                <button
+                                    key={item.id}
+                                    onClick={() => {
+                                        setActiveTab(item.id);
+                                        setSelectedMeeting(null);
+                                        setSelectedInspection(null);
+                                        setSelectedTraining(null);
+                                        setSelectedAccident(null);
+                                    }}
+                                    className="flex flex-col items-center justify-center flex-1 h-full py-2 space-y-0.5"
+                                >
+                                    <div className={`p-1 rounded-lg transition-colors ${active ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-500'}`}>
+                                        <Icon name={item.icon} className="w-5 h-5 shrink-0" />
+                                    </div>
+                                    <span className={`text-[9px] font-bold tracking-tight ${active ? 'text-emerald-400' : 'text-slate-500'}`}>
+                                        {item.label}
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </nav>
+
+                    {/* =========================================================
+                        PREMIUM MOBILE BOTTOM SHEET MODALS
+                        ========================================================= */}
+                    
+                    {/* Sheet 1: Crear Reunión */}
+                    {showMeetingModal && (
+                        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 backdrop-blur-sm transition-opacity duration-300">
+                            <div className="w-full bg-[#070b19] border-t border-slate-800 rounded-t-3xl p-6 space-y-5 max-h-[92vh] overflow-y-auto pb-8 shadow-2xl">
+                                <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto mb-2"></div>
+                                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                                    <h3 className="text-lg font-bold text-white font-sans">Nueva Sesión Mensual</h3>
+                                    <button onClick={() => setShowMeetingModal(false)} className="text-slate-500 p-1">
+                                        <Icon name="x" className="w-6 h-6" />
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handleCreateMeeting} className="space-y-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Título de la Sesión</label>
+                                        <input 
+                                            type="text" required placeholder="Ej: Reunión Ordinaria Junio"
+                                            value={meetingForm.title}
+                                            onChange={(e) => setMeetingForm({ ...meetingForm, title: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none focus:border-emerald-500/50"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tipo</label>
+                                            <select 
+                                                value={meetingForm.type}
+                                                onChange={(e) => setMeetingForm({ ...meetingForm, type: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                            >
+                                                <option value="ORDINARIA">Ordinaria</option>
+                                                <option value="EXTRAORDINARIA">Extraordinaria</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Fecha</label>
+                                            <input 
+                                                type="date" required value={meetingForm.date}
+                                                onChange={(e) => setMeetingForm({ ...meetingForm, date: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tabla de Temas</label>
+                                        <textarea 
+                                            rows="3" placeholder="Puntos a auditar..."
+                                            value={meetingForm.description}
+                                            onChange={(e) => setMeetingForm({ ...meetingForm, description: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Asistentes (separados por coma)</label>
+                                        <input 
+                                            type="text" placeholder="Ej: Juan Pérez, María Gómez"
+                                            value={meetingForm.attendees}
+                                            onChange={(e) => setMeetingForm({ ...meetingForm, attendees: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                        />
+                                    </div>
+
+                                    <div className="flex space-x-3 pt-3">
+                                        <button type="button" onClick={() => setShowMeetingModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                                        <button type="submit" className="btn-gradient flex-1">Crear Sesión</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Sheet 2: Crear Inspección */}
+                    {showInspectionModal && (
+                        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 backdrop-blur-sm">
+                            <div className="w-full bg-[#070b19] border-t border-slate-800 rounded-t-3xl p-6 space-y-5 max-h-[92vh] overflow-y-auto pb-8 shadow-2xl">
+                                <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto mb-2"></div>
+                                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                                    <h3 className="text-lg font-bold text-white">Programar Inspección</h3>
+                                    <button onClick={() => setShowInspectionModal(false)} className="text-slate-500 p-1">
+                                        <Icon name="x" className="w-6 h-6" />
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handleCreateInspection} className="space-y-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Nombre de la Inspección</label>
+                                        <input 
+                                            type="text" required placeholder="Ej: Inspección Mensual de Extintores"
+                                            value={inspectionForm.title}
+                                            onChange={(e) => setInspectionForm({ ...inspectionForm, title: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Fecha Programada</label>
+                                            <input 
+                                                type="date" required value={inspectionForm.planned_date}
+                                                onChange={(e) => setInspectionForm({ ...inspectionForm, planned_date: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Inspector Asignado</label>
+                                            <input 
+                                                type="text" required placeholder="Ej: Pedro Silva"
+                                                value={inspectionForm.inspector_name}
+                                                onChange={(e) => setInspectionForm({ ...inspectionForm, inspector_name: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex space-x-3 pt-3">
+                                        <button type="button" onClick={() => setShowInspectionModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                                        <button type="submit" className="btn-gradient flex-1">Programar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Sheet 3: Reportar Hallazgo */}
+                    {showFindingModal && (
+                        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 backdrop-blur-sm">
+                            <div className="w-full bg-[#070b19] border-t border-slate-800 rounded-t-3xl p-6 space-y-5 max-h-[92vh] overflow-y-auto pb-8 shadow-2xl">
+                                <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto mb-2"></div>
+                                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                                    <h3 className="text-lg font-bold text-white">Reportar Hallazgo</h3>
+                                    <button onClick={() => setShowFindingModal(false)} className="text-slate-500 p-1">
+                                        <Icon name="x" className="w-6 h-6" />
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handleCreateFinding} className="space-y-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Descripción de la Desviación</label>
+                                        <textarea 
+                                            rows="3" required placeholder="Describa el hallazgo o condición insegura..."
+                                            value={findingForm.description}
+                                            onChange={(e) => setFindingForm({ ...findingForm, description: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Riesgo</label>
+                                            <select 
+                                                value={findingForm.risk_level}
+                                                onChange={(e) => setFindingForm({ ...findingForm, risk_level: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                            >
+                                                <option value="BAJO">Bajo</option>
+                                                <option value="MEDIO">Medio</option>
+                                                <option value="ALTO">Alto</option>
+                                                <option value="CRITICO">Crítico</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Límite Corrección</label>
+                                            <input 
+                                                type="date" required value={findingForm.due_date}
+                                                onChange={(e) => setFindingForm({ ...findingForm, due_date: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Medida Correctiva Asignada</label>
+                                        <input 
+                                            type="text" required placeholder="Ej: Reparar interruptor eléctrico"
+                                            value={findingForm.corrective_measure}
+                                            onChange={(e) => setFindingForm({ ...findingForm, corrective_measure: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                        />
+                                    </div>
+
+                                    <div className="flex space-x-3 pt-3">
+                                        <button type="button" onClick={() => setShowFindingModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                                        <button type="submit" className="btn-gradient flex-1">Reportar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Sheet 4: Crear Capacitación */}
+                    {showTrainingModal && (
+                        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 backdrop-blur-sm">
+                            <div className="w-full bg-[#070b19] border-t border-slate-800 rounded-t-3xl p-6 space-y-5 max-h-[92vh] overflow-y-auto pb-8 shadow-2xl">
+                                <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto mb-2"></div>
+                                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                                    <h3 className="text-lg font-bold text-white">Programar Capacitación</h3>
+                                    <button onClick={() => setShowTrainingModal(false)} className="text-slate-500 p-1">
+                                        <Icon name="x" className="w-6 h-6" />
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handleCreateTraining} className="space-y-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tema del Curso</label>
+                                        <input 
+                                            type="text" required placeholder="Ej: Uso y Manejo de Extintores"
+                                            value={trainingForm.topic}
+                                            onChange={(e) => setTrainingForm({ ...trainingForm, topic: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                        />
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Fecha Programación</label>
+                                            <input 
+                                                type="date" required value={trainingForm.planned_date}
+                                                onChange={(e) => setTrainingForm({ ...trainingForm, planned_date: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Horas Formativas</label>
+                                            <input 
+                                                type="number" required min="1" value={trainingForm.hours}
+                                                onChange={(e) => setTrainingForm({ ...trainingForm, hours: Number(e.target.value) })}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex space-x-3 pt-3">
+                                        <button type="button" onClick={() => setShowTrainingModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                                        <button type="submit" className="btn-gradient flex-1">Crear Curso</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Sheet 5: Acreditar Asistente */}
+                    {showAttendeeModal && (
+                        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 backdrop-blur-sm">
+                            <div className="w-full bg-[#070b19] border-t border-slate-800 rounded-t-3xl p-6 space-y-5 max-h-[92vh] overflow-y-auto pb-8 shadow-2xl">
+                                <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto mb-2"></div>
+                                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                                    <h3 className="text-lg font-bold text-white font-sans">Acreditar Firma del Trabajador</h3>
+                                    <button onClick={() => setShowAttendeeModal(false)} className="text-slate-500 p-1">
+                                        <Icon name="x" className="w-6 h-6" />
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handleAddAttendee} className="space-y-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Nombre del Colaborador</label>
+                                        <input 
+                                            type="text" required placeholder="Ej: Carlos Mendoza"
+                                            value={attendeeForm.employee_name}
+                                            onChange={(e) => setAttendeeForm({ ...attendeeForm, employee_name: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Cédula de Identidad / RUN</label>
+                                        <input 
+                                            type="text" required placeholder="Ej: 18.555.666-4"
+                                            value={attendeeForm.employee_run}
+                                            onChange={(e) => setAttendeeForm({ ...attendeeForm, employee_run: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Calificación</label>
+                                        <select 
+                                            value={attendeeForm.status}
+                                            onChange={(e) => setAttendeeForm({ ...attendeeForm, status: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                        >
+                                            <option value="APROBADO">Aprobado (Genera Certificado)</option>
+                                            <option value="ASISTIO">Asistió</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex space-x-3 pt-3">
+                                        <button type="button" onClick={() => setShowAttendeeModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                                        <button type="submit" className="btn-gradient flex-1">Acreditar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Sheet 6: Registrar Accidente (5 Porqués) */}
+                    {showAccidentModal && (
+                        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/70 backdrop-blur-sm">
+                            <div className="w-full bg-[#070b19] border-t border-slate-800 rounded-t-3xl p-6 space-y-5 max-h-[92vh] overflow-y-auto pb-8 shadow-2xl">
+                                <div className="w-12 h-1.5 bg-slate-800 rounded-full mx-auto mb-2"></div>
+                                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                                    <h3 className="text-lg font-bold text-white">Reportar Accidente</h3>
+                                    <button onClick={() => setShowAccidentModal(false)} className="text-slate-500 p-1">
+                                        <Icon name="x" className="w-6 h-6" />
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handleCreateAccident} className="space-y-4">
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Trabajador</label>
+                                            <input 
+                                                type="text" required placeholder="Nombre Afectado"
+                                                value={accidentForm.employee_name}
+                                                onChange={(e) => setAccidentForm({ ...accidentForm, employee_name: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                            />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Fecha y Hora</label>
+                                            <input 
+                                                type="datetime-local" required value={accidentForm.date}
+                                                onChange={(e) => setAccidentForm({ ...accidentForm, date: e.target.value })}
+                                                className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                            />
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Gravedad</label>
+                                        <select 
+                                            value={accidentForm.accident_type}
+                                            onChange={(e) => setAccidentForm({ ...accidentForm, accident_type: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                        >
+                                            <option value="LEVE">Leve</option>
+                                            <option value="GRAVE">Grave</option>
+                                            <option value="FATAL">Fatal</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Descripción Breve</label>
+                                        <textarea 
+                                            rows="2" required placeholder="Relato del suceso..."
+                                            value={accidentForm.description}
+                                            onChange={(e) => setAccidentForm({ ...accidentForm, description: e.target.value })}
+                                            className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                                        />
+                                    </div>
+
+                                    <div className="p-4 rounded-xl bg-slate-900 border border-slate-850 space-y-3">
+                                        <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest block">Análisis de los 5 Porqués</span>
+                                        <input 
+                                            type="text" required placeholder="1. ¿Por qué ocurrió el contacto?"
+                                            value={accidentForm.why1}
+                                            onChange={(e) => setAccidentForm({ ...accidentForm, why1: e.target.value })}
+                                            className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-100 focus:outline-none"
+                                        />
+                                        <input 
+                                            type="text" required placeholder="2. ¿Por qué se encontraba en ese estado?"
+                                            value={accidentForm.why2}
+                                            onChange={(e) => setAccidentForm({ ...accidentForm, why2: e.target.value })}
+                                            className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-100 focus:outline-none"
+                                        />
+                                    </div>
+
+                                    <div className="flex space-x-3 pt-3">
+                                        <button type="button" onClick={() => setShowAccidentModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                                        <button type="submit" className="btn-gradient flex-1">Guardar</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Sheet 7: Visualizar/Imprimir Certificado (Fully Mobile Optimized responsive view) */}
+                    {activeCertificatePdf && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+                            <div className="w-full max-w-sm bg-white text-slate-900 rounded-3xl p-6 space-y-6 shadow-2xl relative border-4 border-emerald-500/10">
+                                
+                                <button 
+                                    onClick={() => setActiveCertificatePdf(null)}
+                                    className="absolute right-4 top-4 w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 border"
+                                >
+                                    <Icon name="x" className="w-3.5 h-3.5" />
+                                </button>
+
+                                <div className="text-center space-y-4 py-4 border-2 border-double border-slate-200 p-4 rounded-xl relative">
+                                    <div className="w-12 h-12 rounded-full bg-emerald-50 border border-emerald-500 mx-auto flex items-center justify-center text-emerald-600">
+                                        <Icon name="shield" className="w-6 h-6" />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <h2 className="font-extrabold text-sm tracking-wider text-slate-800 uppercase font-sans">CERTIFICADO ACREDITACIÓN</h2>
+                                        <p className="text-[8px] tracking-widest text-emerald-600 font-bold uppercase font-sans">Comité Paritario Higiene y Seguridad</p>
+                                    </div>
+
+                                    <p className="text-[10px] text-slate-500 leading-relaxed">
+                                        Se certifica bajo la normativa legal de seguridad de la compañía que:
+                                    </p>
+
+                                    <div className="space-y-0.5">
+                                        <h3 className="text-lg font-bold text-slate-900 font-sans">{activeCertificatePdf.employee_name}</h3>
+                                        <p className="text-[10px] font-semibold text-slate-400 font-sans">RUN: {activeCertificatePdf.employee_run}</p>
+                                    </div>
+
+                                    <p className="text-[10px] text-slate-500">
+                                        Ha aprobado y completado el curso:
+                                    </p>
+
+                                    <div className="bg-slate-50 p-3 rounded-lg border border-slate-150 inline-block w-full">
+                                        <h4 className="font-bold text-xs text-slate-800 leading-snug">{activeCertificatePdf.training_topic}</h4>
+                                        <p className="text-[8px] text-slate-400 font-semibold mt-1 font-sans">Fecha de Acreditación: {activeCertificatePdf.training_date}</p>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-4 pt-4">
+                                        <div className="text-center border-t border-slate-200 pt-1.5">
+                                            <span className="text-[8px] font-bold text-slate-500 uppercase block font-sans">Firma Presidente</span>
+                                        </div>
+                                        <div className="text-center border-t border-slate-200 pt-1.5">
+                                            <span className="text-[8px] font-bold text-slate-500 uppercase block font-sans">Firma Asesor Prev.</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="flex space-x-2.5 justify-end">
+                                    <button 
+                                        onClick={() => setActiveCertificatePdf(null)}
+                                        className="px-3.5 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold transition-all flex-1"
+                                    >
+                                        Cerrar
+                                    </button>
+                                    <button 
+                                        onClick={() => window.print()}
+                                        className="px-3.5 py-2 rounded-xl bg-emerald-500 text-white text-xs font-bold transition-all shadow flex items-center justify-center space-x-1.5 flex-1"
+                                    >
+                                        <Icon name="download" className="w-4 h-4" />
+                                        <span>Imprimir</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                </div>
+            );
+        }
+
+        // Mount the React Application
+        const root = ReactDOM.createRoot(document.getElementById("root"));
+        root.render(<App />);
+    </script>
+</body>
+</html>
