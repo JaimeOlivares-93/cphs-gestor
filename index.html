@@ -243,6 +243,97 @@
             );
         };
 
+        const REAL_WORKERS = [
+            { run: '17.912.080-1', name: 'Raúl Eduardo', lastName: 'Canumán' },
+            { run: '13.308.510-6', name: 'Raúl Humberto', lastName: 'Marquez' },
+            { run: '8.889.729-3', name: 'Roberto Hernan', lastName: 'Soto' },
+            { run: '13.343.487-9', name: 'Gonzalo Javier', lastName: 'Jara' },
+            { run: '11.939.077-k', name: 'Jose Antonio', lastName: 'Lazo' },
+            { run: '16.450.297-k', name: 'Victor Manuel', lastName: 'Gahona' },
+            { run: '15.053.206-k', name: 'Jaime Guillermo', lastName: 'Ledezma' },
+            { run: '10.177.916-5', name: 'Sergio Hernan', lastName: 'Rodriguez' },
+            { run: '16.552.066-1', name: 'Cristian Antonio', lastName: 'Valdivia' },
+            { run: '13.668.078-1', name: 'Alvaro Gabriel', lastName: 'Zuñiga' },
+            { run: '24.709.674-4', name: 'Jorge Eduardo', lastName: 'Padilla' },
+            { run: '18.506.539-1', name: 'Christian Vladimir', lastName: 'Nuñez' },
+            { run: '24.520.937-1', name: 'Fernando', lastName: 'Callata' },
+            { run: '15.062.226-3', name: 'Augusto Patricio', lastName: 'Garrido' },
+            { run: '20.285.671-3', name: 'Vicente Joaquin', lastName: 'Perez' },
+            { run: '18.512.091-0', name: 'Jaime Esteban', lastName: 'Olivares' },
+            { run: '12.527.718-7', name: 'Marcelo David', lastName: 'Sepulveda' },
+            { run: '10.780.852-3', name: 'Nadia Katherine', lastName: 'Mora' },
+            { run: '15.166.603-5', name: 'Franco Antonio', lastName: 'Cerda' },
+            { run: '24.275.965-6', name: 'Everth', lastName: 'Lazcano' },
+            { run: '17.363.534-6', name: 'Cristian Sebastián', lastName: 'Muñoz' },
+            { run: '25.574.995-1', name: 'Marco Antonio', lastName: 'Hurtado' },
+            { run: '25.999.182-k', name: 'Maria Mercedes', lastName: 'Diaz' },
+            { run: '17.161.426-0', name: 'Mario Andres', lastName: 'Ruz' },
+            { run: '13.431.732-9', name: 'Rene Patricio', lastName: 'Carvajal' },
+            { run: '20.260.272-k', name: 'Brandon Lukas', lastName: 'Fernandez' },
+            { run: '15.596.126-0', name: 'Wilson Marcelo', lastName: 'Diaz' },
+            { run: '18.483.076-0', name: 'Camila Belen', lastName: 'Nava' },
+            { run: '8.942.885-8', name: 'Luis Alejandro', lastName: 'Lillo' },
+            { run: '20.093.748-1', name: 'Kevin Yerko', lastName: 'Quispe' },
+            { run: '20.428.316-8', name: 'Hector Yusseff', lastName: 'Missene' },
+            { run: '20.947.050-0', name: 'David Andres', lastName: 'Diaz' },
+            { run: '21.151.926-6', name: 'Diego Andres', lastName: 'Salgado' },
+            { run: '20.212.924-2', name: 'Andrés Sebastian', lastName: 'Miranda' },
+            { run: '19.204.801-k', name: 'Javiera Macarena', lastName: 'Marañado' },
+            { run: '25.203.659-8', name: 'Maiker', lastName: 'Huarachi' },
+            { run: '17.422.196-0', name: 'Fabian Andres', lastName: 'Soto' },
+            { run: '26.432.139-5', name: 'Maria Alejandra', lastName: 'Perez' },
+            { run: '13.776.212-9', name: 'Marlen Andrea', lastName: 'Silva' },
+            { run: '18.754.714-8', name: 'Paola Tatiana', lastName: 'Zepeda' },
+            { run: '15.166.505-5', name: 'Lucas Brian', lastName: 'Pizarro' },
+            { run: '19.505.005-8', name: 'Brian Sebastian', lastName: 'Araya' }
+        ];
+
+        const generatedCertificates = [];
+        let certId = 1;
+        REAL_WORKERS.forEach((w, idx) => {
+            const fullName = `${w.name} ${w.lastName}`;
+            
+            // Todos hacen Uso de Extintores
+            generatedCertificates.push({
+                id: certId++,
+                training_id: 1,
+                employee_name: fullName,
+                employee_run: w.run,
+                certificate_file_path: 'mock_cert_extintores.pdf',
+                status: 'APROBADO',
+                training_topic: 'USO DE EXTINTORES',
+                training_date: '2026-03-25'
+            });
+
+            // Los primeros 20 hacen Plan de Emergencia
+            if (idx < 20) {
+                generatedCertificates.push({
+                    id: certId++,
+                    training_id: 2,
+                    employee_name: fullName,
+                    employee_run: w.run,
+                    certificate_file_path: 'mock_cert_emergencia.pdf',
+                    status: 'APROBADO',
+                    training_topic: 'PLAN DE EMERGENCIA VP',
+                    training_date: '2026-04-18'
+                });
+            }
+
+            // Los siguientes 20 hacen Hombre Nuevo
+            if (idx >= 20 && idx < 40) {
+                generatedCertificates.push({
+                    id: certId++,
+                    training_id: 3,
+                    employee_name: fullName,
+                    employee_run: w.run,
+                    certificate_file_path: 'mock_cert_hombre_nuevo.pdf',
+                    status: 'APROBADO',
+                    training_topic: 'CURSO HOMBRE NUEVO',
+                    training_date: '2026-05-20'
+                });
+            }
+        });
+
         const INITIAL_SEED_DATA = {
             meetings: [
                 { id: 1, title: 'Constitución del Comité Paritario 2026', type: 'EXTRAORDINARIA', date: '2026-01-15', description: 'Reunión inicial para constituir los cargos del comité, asignar presidente y secretario, y establecer el cronograma anual.', attendees: ['Juan Pérez', 'María Gómez', 'Pedro Silva', 'Ana López', 'Prevencionista CPHS'], act_file_path: 'mock_acta_constitucion.pdf', status: 'COMPLETADA' },
@@ -275,21 +366,12 @@
                 { id: 5, inspection_id: 3, description: 'Falta señalización de salida de emergencia en pasillo del sector B.', risk_level: 'BAJO', corrective_measure: 'Adquirir y fijar letrero fotoluminiscente de evacuación.', due_date: '2026-05-30', status: 'ABIERTO', evidence_file_path: null, closed_at: null }
             ],
             trainings: [
-                { id: 1, topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', category: 'SEGURIDAD', planned_date: '2026-03-25', conducted_date: '2026-03-25', hours: 2, attendee_count: 5, status: 'COMPLETADA', attendance_list_file_path: 'mock_lista_ext.pdf', photo_file_path: 'mock_foto_ext.jpg', material_file_path: 'mock_manual_ext.pdf' },
-                { id: 2, topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', category: 'SALUD', planned_date: '2026-05-18', conducted_date: '2026-05-18', hours: 4, attendee_count: 4, status: 'COMPLETADA', attendance_list_file_path: 'mock_lista_rcp.pdf', photo_file_path: 'mock_foto_rcp.jpg', material_file_path: null },
-                { id: 3, topic: 'Prevención de Riesgos de Atrapamientos y EPP', category: 'SEGURIDAD', planned_date: '2026-06-22', conducted_date: null, hours: 2, attendee_count: 0, status: 'PENDIENTE', attendance_list_file_path: null, photo_file_path: null, material_file_path: null }
+                { id: 1, topic: 'USO DE EXTINTORES', category: 'SEGURIDAD', planned_date: '2026-03-25', conducted_date: '2026-03-25', hours: 2, attendee_count: 42, status: 'COMPLETADA', attendance_list_file_path: 'mock_lista_ext.pdf', photo_file_path: 'mock_foto_ext.jpg', material_file_path: 'mock_manual_ext.pdf' },
+                { id: 2, topic: 'PLAN DE EMERGENCIA VP', category: 'EMERGENCIA', planned_date: '2026-04-18', conducted_date: '2026-04-18', hours: 4, attendee_count: 20, status: 'COMPLETADA', attendance_list_file_path: 'mock_lista_emergencia.pdf', photo_file_path: 'mock_foto_emergencia.jpg', material_file_path: null },
+                { id: 3, topic: 'CURSO HOMBRE NUEVO', category: 'SEGURIDAD', planned_date: '2026-05-20', conducted_date: '2026-05-20', hours: 8, attendee_count: 20, status: 'COMPLETADA', attendance_list_file_path: 'mock_lista_hombre_nuevo.pdf', photo_file_path: null, material_file_path: null },
+                { id: 4, topic: 'REGLAMENTO DE TRANSITO VP', category: 'TRANSITO', planned_date: '2026-06-22', conducted_date: null, hours: 2, attendee_count: 0, status: 'PENDIENTE', attendance_list_file_path: null, photo_file_path: null, material_file_path: null }
             ],
-            training_employees: [
-                { id: 1, training_id: 1, employee_name: 'Juan Pérez', employee_run: '12.345.678-9', certificate_file_path: 'mock_cert_juan.pdf', status: 'APROBADO', training_topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', training_date: '2026-03-25' },
-                { id: 2, training_id: 1, employee_name: 'María Gómez', employee_run: '15.432.109-8', certificate_file_path: 'mock_cert_maria.pdf', status: 'APROBADO', training_topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', training_date: '2026-03-25' },
-                { id: 3, training_id: 1, employee_name: 'Pedro Silva', employee_run: '11.222.333-k', certificate_file_path: 'mock_cert_pedro.pdf', status: 'APROBADO', training_topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', training_date: '2026-03-25' },
-                { id: 4, training_id: 1, employee_name: 'Carlos Mendoza', employee_run: '18.555.666-4', certificate_file_path: 'mock_cert_carlos.pdf', status: 'APROBADO', training_topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', training_date: '2026-03-25' },
-                { id: 5, training_id: 1, employee_name: 'Ana López', employee_run: '14.999.888-7', certificate_file_path: 'mock_cert_ana.pdf', status: 'APROBADO', training_topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', training_date: '2026-03-25' },
-                { id: 6, training_id: 2, employee_name: 'Juan Pérez', employee_run: '12.345.678-9', certificate_file_path: 'mock_cert_juan_rcp.pdf', status: 'APROBADO', training_topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', training_date: '2026-05-18' },
-                { id: 7, training_id: 2, employee_name: 'María Gómez', employee_run: '15.432.109-8', certificate_file_path: 'mock_cert_maria_rcp.pdf', status: 'APROBADO', training_topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', training_date: '2026-05-18' },
-                { id: 8, training_id: 2, employee_name: 'Pedro Silva', employee_run: '11.222.333-k', certificate_file_path: 'mock_cert_pedro_rcp.pdf', status: 'APROBADO', training_topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', training_date: '2026-05-18' },
-                { id: 9, training_id: 2, employee_name: 'Ana López', employee_run: '14.999.888-7', certificate_file_path: 'mock_cert_ana_rcp.pdf', status: 'APROBADO', training_topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', training_date: '2026-05-18' }
-            ],
+            training_employees: generatedCertificates,
             accidents: [
                 {
                     id: 1,

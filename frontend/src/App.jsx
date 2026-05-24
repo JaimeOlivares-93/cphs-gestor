@@ -26,6 +26,98 @@ import {
   ArrowLeft,
   LogOut
 } from 'lucide-react';
+import { supabase } from './supabaseClient';
+
+const REAL_WORKERS = [
+  { run: '17.912.080-1', name: 'Raúl Eduardo', lastName: 'Canumán' },
+  { run: '13.308.510-6', name: 'Raúl Humberto', lastName: 'Marquez' },
+  { run: '8.889.729-3', name: 'Roberto Hernan', lastName: 'Soto' },
+  { run: '13.343.487-9', name: 'Gonzalo Javier', lastName: 'Jara' },
+  { run: '11.939.077-k', name: 'Jose Antonio', lastName: 'Lazo' },
+  { run: '16.450.297-k', name: 'Victor Manuel', lastName: 'Gahona' },
+  { run: '15.053.206-k', name: 'Jaime Guillermo', lastName: 'Ledezma' },
+  { run: '10.177.916-5', name: 'Sergio Hernan', lastName: 'Rodriguez' },
+  { run: '16.552.066-1', name: 'Cristian Antonio', lastName: 'Valdivia' },
+  { run: '13.668.078-1', name: 'Alvaro Gabriel', lastName: 'Zuñiga' },
+  { run: '24.709.674-4', name: 'Jorge Eduardo', lastName: 'Padilla' },
+  { run: '18.506.539-1', name: 'Christian Vladimir', lastName: 'Nuñez' },
+  { run: '24.520.937-1', name: 'Fernando', lastName: 'Callata' },
+  { run: '15.062.226-3', name: 'Augusto Patricio', lastName: 'Garrido' },
+  { run: '20.285.671-3', name: 'Vicente Joaquin', lastName: 'Perez' },
+  { run: '18.512.091-0', name: 'Jaime Esteban', lastName: 'Olivares' },
+  { run: '12.527.718-7', name: 'Marcelo David', lastName: 'Sepulveda' },
+  { run: '10.780.852-3', name: 'Nadia Katherine', lastName: 'Mora' },
+  { run: '15.166.603-5', name: 'Franco Antonio', lastName: 'Cerda' },
+  { run: '24.275.965-6', name: 'Everth', lastName: 'Lazcano' },
+  { run: '17.363.534-6', name: 'Cristian Sebastián', lastName: 'Muñoz' },
+  { run: '25.574.995-1', name: 'Marco Antonio', lastName: 'Hurtado' },
+  { run: '25.999.182-k', name: 'Maria Mercedes', lastName: 'Diaz' },
+  { run: '17.161.426-0', name: 'Mario Andres', lastName: 'Ruz' },
+  { run: '13.431.732-9', name: 'Rene Patricio', lastName: 'Carvajal' },
+  { run: '20.260.272-k', name: 'Brandon Lukas', lastName: 'Fernandez' },
+  { run: '15.596.126-0', name: 'Wilson Marcelo', lastName: 'Diaz' },
+  { run: '18.483.076-0', name: 'Camila Belen', lastName: 'Nava' },
+  { run: '8.942.885-8', name: 'Luis Alejandro', lastName: 'Lillo' },
+  { run: '20.093.748-1', name: 'Kevin Yerko', lastName: 'Quispe' },
+  { run: '20.428.316-8', name: 'Hector Yusseff', lastName: 'Missene' },
+  { run: '20.947.050-0', name: 'David Andres', lastName: 'Diaz' },
+  { run: '21.151.926-6', name: 'Diego Andres', lastName: 'Salgado' },
+  { run: '20.212.924-2', name: 'Andrés Sebastian', lastName: 'Miranda' },
+  { run: '19.204.801-k', name: 'Javiera Macarena', lastName: 'Marañado' },
+  { run: '25.203.659-8', name: 'Maiker', lastName: 'Huarachi' },
+  { run: '17.422.196-0', name: 'Fabian Andres', lastName: 'Soto' },
+  { run: '26.432.139-5', name: 'Maria Alejandra', lastName: 'Perez' },
+  { run: '13.776.212-9', name: 'Marlen Andrea', lastName: 'Silva' },
+  { run: '18.754.714-8', name: 'Paola Tatiana', lastName: 'Zepeda' },
+  { run: '15.166.505-5', name: 'Lucas Brian', lastName: 'Pizarro' },
+  { run: '19.505.005-8', name: 'Brian Sebastian', lastName: 'Araya' }
+];
+
+const generatedCertificates = [];
+let certId = 1;
+REAL_WORKERS.forEach((w, idx) => {
+  const fullName = `${w.name} ${w.lastName}`;
+  
+  // Todos hacen el curso de Extintores
+  generatedCertificates.push({
+    id: certId++,
+    training_id: 1,
+    employee_name: fullName,
+    employee_run: w.run,
+    certificate_file_path: 'mock_cert_extintores.pdf',
+    status: 'APROBADO',
+    training_topic: 'USO DE EXTINTORES',
+    training_date: '2026-03-25'
+  });
+
+  // Los primeros 20 hacen Plan de Emergencia
+  if (idx < 20) {
+    generatedCertificates.push({
+      id: certId++,
+      training_id: 2,
+      employee_name: fullName,
+      employee_run: w.run,
+      certificate_file_path: 'mock_cert_emergencia.pdf',
+      status: 'APROBADO',
+      training_topic: 'PLAN DE EMERGENCIA VP',
+      training_date: '2026-04-18'
+    });
+  }
+
+  // Los siguientes 20 hacen Hombre Nuevo
+  if (idx >= 20 && idx < 40) {
+    generatedCertificates.push({
+      id: certId++,
+      training_id: 3,
+      employee_name: fullName,
+      employee_run: w.run,
+      certificate_file_path: 'mock_cert_hombre_nuevo.pdf',
+      status: 'APROBADO',
+      training_topic: 'CURSO HOMBRE NUEVO',
+      training_date: '2026-05-20'
+    });
+  }
+});
 
 const INITIAL_SEED_DATA = {
   meetings: [
@@ -59,21 +151,12 @@ const INITIAL_SEED_DATA = {
     { id: 5, inspection_id: 3, description: 'Falta señalización de salida de emergencia en pasillo del sector B.', risk_level: 'BAJO', corrective_measure: 'Adquirir y fijar letrero fotoluminiscente de evacuación.', due_date: '2026-05-30', status: 'ABIERTO', evidence_file_path: null, closed_at: null }
   ],
   trainings: [
-    { id: 1, topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', category: 'SEGURIDAD', planned_date: '2026-03-25', conducted_date: '2026-03-25', hours: 2, attendee_count: 5, status: 'COMPLETADA', attendance_list_file_path: 'mock_lista_ext.pdf', photo_file_path: 'mock_foto_ext.jpg', material_file_path: 'mock_manual_ext.pdf' },
-    { id: 2, topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', category: 'SALUD', planned_date: '2026-05-18', conducted_date: '2026-05-18', hours: 4, attendee_count: 4, status: 'COMPLETADA', attendance_list_file_path: 'mock_lista_rcp.pdf', photo_file_path: 'mock_foto_rcp.jpg', material_file_path: null },
-    { id: 3, topic: 'Prevención de Riesgos de Atrapamientos y EPP', category: 'SEGURIDAD', planned_date: '2026-06-22', conducted_date: null, hours: 2, attendee_count: 0, status: 'PENDIENTE', attendance_list_file_path: null, photo_file_path: null, material_file_path: null }
+    { id: 1, topic: 'USO DE EXTINTORES', category: 'SEGURIDAD', planned_date: '2026-03-25', conducted_date: '2026-03-25', hours: 2, attendee_count: 42, status: 'COMPLETADA', attendance_list_file_path: 'mock_lista_ext.pdf', photo_file_path: 'mock_foto_ext.jpg', material_file_path: 'mock_manual_ext.pdf' },
+    { id: 2, topic: 'PLAN DE EMERGENCIA VP', category: 'SEGURIDAD', planned_date: '2026-04-18', conducted_date: '2026-04-18', hours: 4, attendee_count: 20, status: 'COMPLETADA', attendance_list_file_path: 'mock_lista_rcp.pdf', photo_file_path: 'mock_foto_rcp.jpg', material_file_path: null },
+    { id: 3, topic: 'CURSO HOMBRE NUEVO', category: 'NORMATIVA', planned_date: '2026-05-20', conducted_date: '2026-05-20', hours: 8, attendee_count: 20, status: 'COMPLETADA', attendance_list_file_path: 'mock_lista_hombre_nuevo.pdf', photo_file_path: null, material_file_path: null },
+    { id: 4, topic: 'REGLAMENTO DE TRANSITO VP', category: 'NORMATIVA', planned_date: '2026-06-22', conducted_date: null, hours: 2, attendee_count: 0, status: 'PENDIENTE', attendance_list_file_path: null, photo_file_path: null, material_file_path: null }
   ],
-  training_employees: [
-    { id: 1, training_id: 1, employee_name: 'Juan Pérez', employee_run: '12.345.678-9', certificate_file_path: 'mock_cert_juan.pdf', status: 'APROBADO', training_topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', training_date: '2026-03-25' },
-    { id: 2, training_id: 1, employee_name: 'María Gómez', employee_run: '15.432.109-8', certificate_file_path: 'mock_cert_maria.pdf', status: 'APROBADO', training_topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', training_date: '2026-03-25' },
-    { id: 3, training_id: 1, employee_name: 'Pedro Silva', employee_run: '11.222.333-k', certificate_file_path: 'mock_cert_pedro.pdf', status: 'APROBADO', training_topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', training_date: '2026-03-25' },
-    { id: 4, training_id: 1, employee_name: 'Carlos Mendoza', employee_run: '18.555.666-4', certificate_file_path: 'mock_cert_carlos.pdf', status: 'APROBADO', training_topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', training_date: '2026-03-25' },
-    { id: 5, training_id: 1, employee_name: 'Ana López', employee_run: '14.999.888-7', certificate_file_path: 'mock_cert_ana.pdf', status: 'APROBADO', training_topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', training_date: '2026-03-25' },
-    { id: 6, training_id: 2, employee_name: 'Juan Pérez', employee_run: '12.345.678-9', certificate_file_path: 'mock_cert_juan_rcp.pdf', status: 'APROBADO', training_topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', training_date: '2026-05-18' },
-    { id: 7, training_id: 2, employee_name: 'María Gómez', employee_run: '15.432.109-8', certificate_file_path: 'mock_cert_maria_rcp.pdf', status: 'APROBADO', training_topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', training_date: '2026-05-18' },
-    { id: 8, training_id: 2, employee_name: 'Pedro Silva', employee_run: '11.222.333-k', certificate_file_path: 'mock_cert_pedro_rcp.pdf', status: 'APROBADO', training_topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', training_date: '2026-05-18' },
-    { id: 9, training_id: 2, employee_name: 'Ana López', employee_run: '14.999.888-7', certificate_file_path: 'mock_cert_ana_rcp.pdf', status: 'APROBADO', training_topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', training_date: '2026-05-18' }
-  ],
+  training_employees: generatedCertificates,
   accidents: [
     {
       id: 1,
@@ -130,6 +213,7 @@ export default function App() {
   // Navigation State
   const [activeTab, setActiveTab] = useState('dashboard');
   const [apiMode, setApiMode] = useState(false);
+  const [cloudMode, setCloudMode] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // ==========================================
@@ -328,6 +412,78 @@ export default function App() {
     async function loadData() {
       try {
         setLoading(true);
+        if (supabase) {
+          setCloudMode(true);
+          setApiMode(true);
+
+          // Fetch all tables from Supabase
+          const [resMeet, resInsp, resTrain, resAcc, resPlan, resCert] = await Promise.all([
+            supabase.from('meetings').select('*').order('date', { ascending: false }),
+            supabase.from('inspections').select('*, findings(*)').order('planned_date', { ascending: false }),
+            supabase.from('trainings').select('*').order('planned_date', { ascending: false }),
+            supabase.from('accidents').select('*').order('date', { ascending: false }),
+            supabase.from('annual_plan').select('*').order('month', { ascending: true }),
+            supabase.from('training_employees').select('*').order('created_at', { ascending: false })
+          ]);
+
+          if (resMeet.error) throw resMeet.error;
+          if (resInsp.error) throw resInsp.error;
+          if (resTrain.error) throw resTrain.error;
+          if (resAcc.error) throw resAcc.error;
+          if (resPlan.error) throw resPlan.error;
+          if (resCert.error) throw resCert.error;
+
+          // Parse JSON fields in meetings (attendees) if NoSQL-like or string
+          const parsedMeetings = (resMeet.data || []).map(m => ({
+            ...m,
+            attendees: typeof m.attendees === 'string' ? JSON.parse(m.attendees) : (m.attendees || [])
+          }));
+          setMeetings(parsedMeetings);
+
+          // Get commitments associated with meetings
+          const { data: resComs, error: comError } = await supabase.from('commitments').select('*').order('due_date', { ascending: true });
+          if (comError) throw comError;
+          setCommitments(resComs || []);
+
+          // Process inspections & findings
+          setInspections(resInsp.data || []);
+          let allFindings = [];
+          (resInsp.data || []).forEach(insp => {
+            if (insp.findings) {
+              allFindings = [...allFindings, ...insp.findings];
+            }
+          });
+          setFindings(allFindings);
+
+          // Process trainings
+          setTrainings(resTrain.data || []);
+
+          // Process accidents
+          const parsedAccidents = (resAcc.data || []).map(a => ({
+            ...a,
+            root_cause_analysis: typeof a.root_cause_analysis === 'string' ? JSON.parse(a.root_cause_analysis) : (a.root_cause_analysis || []),
+            corrective_measures: typeof a.corrective_measures === 'string' ? JSON.parse(a.corrective_measures) : (a.corrective_measures || [])
+          }));
+          setAccidents(parsedAccidents);
+
+          // Process annual plan
+          setAnnualPlan(resPlan.data || []);
+
+          // Process certificates
+          const parsedCerts = (resCert.data || []).map(c => {
+            const trainingMat = (resTrain.data || []).find(t => t.id === c.training_id);
+            return {
+              ...c,
+              training_topic: trainingMat ? trainingMat.topic : 'Capacitación',
+              training_date: trainingMat?.conducted_date ? trainingMat.conducted_date.split('T')[0] : ''
+            };
+          });
+          setCertificates(parsedCerts || []);
+          
+          return;
+        }
+
+        // Si no hay Supabase, intentar conectar a la API Express local tradicional
         const testRes = await fetch(`${BASE_API_URL}/dashboard/stats`);
         if (testRes.ok) {
           const [resMeet, resInsp, resTrain, resAcc, resPlan, resCert] = await Promise.all([
@@ -366,6 +522,7 @@ export default function App() {
           throw new Error("API Offline");
         }
       } catch (err) {
+        console.warn("Conexión de red no disponible, usando fallback local.", err);
         setApiMode(false);
         const cached = localStorage.getItem('cphs_store_responsive_v4');
         if (cached) {
@@ -498,6 +655,7 @@ export default function App() {
   }, [trainings, trainingCategoryFilter]);
 
   // ACTIONS (Protegidas por Roles en la vista)
+  // ACTIONS (Protegidas por Roles en la vista)
   const toggleAnnualTask = async (taskId) => {
     if (userRole !== 'ADMIN') return;
     const updatedPlan = annualPlan.map(t => {
@@ -507,7 +665,10 @@ export default function App() {
     setAnnualPlan(updatedPlan);
     triggerSaveState({ annualPlan: updatedPlan });
 
-    if (apiMode) {
+    if (cloudMode && supabase) {
+      const task = updatedPlan.find(t => t.id === taskId);
+      await supabase.from('annual_plan').update({ status: task.status }).eq('id', taskId);
+    } else if (apiMode) {
       const task = updatedPlan.find(t => t.id === taskId);
       await fetch(`${BASE_API_URL}/annual-plan/${taskId}/status`, {
         method: 'PUT',
@@ -532,7 +693,10 @@ export default function App() {
     setCommitments(updatedCommitments);
     triggerSaveState({ commitments: updatedCommitments });
 
-    if (apiMode) {
+    if (cloudMode && supabase) {
+      const target = updatedCommitments.find(c => c.id === comId);
+      await supabase.from('commitments').update({ status: target.status, closed_at: target.closed_at }).eq('id', comId);
+    } else if (apiMode) {
       const target = updatedCommitments.find(c => c.id === comId);
       await fetch(`${BASE_API_URL}/commitments/${comId}`, {
         method: 'PUT',
@@ -577,7 +741,48 @@ export default function App() {
 
     triggerSaveState({ meetings: updatedMeetings, commitments: updatedCommitments });
 
-    if (apiMode) {
+    if (cloudMode && supabase) {
+      let act_file_path = 'mock_acta.pdf';
+      if (meetingRawFile) {
+        const fileExt = meetingRawFile.name.split('.').pop();
+        const fileName = `meeting-${Date.now()}.${fileExt}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('cphs-files')
+          .upload(fileName, meetingRawFile);
+        if (!uploadError) {
+          const { data: publicUrlData } = supabase.storage
+            .from('cphs-files')
+            .getPublicUrl(fileName);
+          act_file_path = publicUrlData.publicUrl;
+        }
+      }
+      
+      const { data: meetData, error: meetError } = await supabase.from('meetings').insert([{
+        title: meetingForm.title,
+        type: meetingForm.type,
+        date: meetingForm.date,
+        description: meetingForm.description,
+        attendees: meetingForm.attendees ? meetingForm.attendees.split(',').map(a => a.trim()) : [],
+        act_file_path: act_file_path,
+        status: 'COMPLETADA'
+      }]).select();
+
+      if (meetError) {
+        console.error("Error al guardar reunión en Supabase:", meetError);
+      } else if (meetData && meetData[0] && meetingForm.title) {
+        const mId = meetData[0].id;
+        await supabase.from('commitments').insert([{
+          meeting_id: mId,
+          description: `Elaborar plan de seguimiento para la sesión: ${meetingForm.title}`,
+          responsible_name: 'Presidente CPHS',
+          due_date: new Date(Date.now() + 15*24*60*60*1000).toISOString().split('T')[0],
+          status: 'PENDIENTE',
+          closed_at: null
+        }]);
+      }
+      window.location.reload();
+      return;
+    } else if (apiMode) {
       const fd = new FormData();
       fd.append('title', meetingForm.title);
       fd.append('type', meetingForm.type);
@@ -620,7 +825,20 @@ export default function App() {
     setInspections(updatedInsps);
     triggerSaveState({ inspections: updatedInsps });
 
-    if (apiMode) {
+    if (cloudMode && supabase) {
+      const { data: inspData, error: inspError } = await supabase.from('inspections').insert([{
+        title: inspectionForm.title,
+        planned_date: inspectionForm.planned_date,
+        conducted_date: inspectionForm.conducted_date || null,
+        inspector_name: inspectionForm.inspector_name,
+        report_file_path: inspectionForm.conducted_date ? 'mock_report.pdf' : null,
+        status: inspectionForm.conducted_date ? 'COMPLETADA' : 'PENDIENTE'
+      }]).select();
+
+      if (inspError) console.error("Error al registrar inspección en Supabase:", inspError);
+      window.location.reload();
+      return;
+    } else if (apiMode) {
       await fetch(`${BASE_API_URL}/inspections`, {
         method: 'POST',
         headers: getRequestHeaders(),
@@ -656,7 +874,37 @@ export default function App() {
     setFindings(updatedFindings);
     triggerSaveState({ findings: updatedFindings });
 
-    if (apiMode) {
+    if (cloudMode && supabase) {
+      let evidence_file_path = 'mock_evidence.jpg';
+      if (findingRawFile) {
+        const fileExt = findingRawFile.name.split('.').pop();
+        const fileName = `finding-${Date.now()}.${fileExt}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('cphs-files')
+          .upload(fileName, findingRawFile);
+        if (!uploadError) {
+          const { data: publicUrlData } = supabase.storage
+            .from('cphs-files')
+            .getPublicUrl(fileName);
+          evidence_file_path = publicUrlData.publicUrl;
+        }
+      }
+
+      const { data: findData, error: findError } = await supabase.from('findings').insert([{
+        inspection_id: selectedInspection.id,
+        description: findingForm.description,
+        risk_level: findingForm.risk_level,
+        corrective_measure: findingForm.corrective_measure,
+        due_date: findingForm.due_date,
+        status: 'ABIERTO',
+        evidence_file_path: evidence_file_path,
+        closed_at: null
+      }]);
+
+      if (findError) console.error("Error al registrar hallazgo en Supabase:", findError);
+      window.location.reload();
+      return;
+    } else if (apiMode) {
       const fd = new FormData();
       fd.append('description', findingForm.description);
       fd.append('risk_level', findingForm.risk_level);
@@ -688,7 +936,10 @@ export default function App() {
     setFindings(updatedFindings);
     triggerSaveState({ findings: updatedFindings });
 
-    if (apiMode) {
+    if (cloudMode && supabase) {
+      const closedAt = new Date().toISOString();
+      await supabase.from('findings').update({ status: 'CERRADO', closed_at: closedAt }).eq('id', findingId);
+    } else if (apiMode) {
       await fetch(`${BASE_API_URL}/findings/${findingId}/close`, { 
         method: 'PUT',
         headers: getRequestHeaders()
@@ -718,7 +969,24 @@ export default function App() {
     setTrainings(updatedTrainings);
     triggerSaveState({ trainings: updatedTrainings });
 
-    if (apiMode) {
+    if (cloudMode && supabase) {
+      const { data: trainData, error: trainError } = await supabase.from('trainings').insert([{
+        topic: trainingForm.topic,
+        category: trainingForm.category,
+        planned_date: trainingForm.planned_date,
+        conducted_date: trainingForm.conducted_date || null,
+        hours: Number(trainingForm.hours),
+        attendee_count: 0,
+        status: trainingForm.conducted_date ? 'COMPLETADA' : 'PENDIENTE',
+        attendance_list_file_path: 'mock_asist.pdf',
+        photo_file_path: 'mock_photo.jpg',
+        material_file_path: null
+      }]).select();
+
+      if (trainError) console.error("Error al registrar capacitación en Supabase:", trainError);
+      window.location.reload();
+      return;
+    } else if (apiMode) {
       await fetch(`${BASE_API_URL}/trainings`, {
         method: 'POST',
         headers: getRequestHeaders(),
@@ -760,7 +1028,25 @@ export default function App() {
 
     triggerSaveState({ certificates: updatedCerts, trainings: updatedTrainings });
 
-    if (apiMode) {
+    if (cloudMode && supabase) {
+      const { data: certData, error: certError } = await supabase.from('training_employees').insert([{
+        training_id: selectedTraining.id,
+        employee_name: attendeeForm.employee_name,
+        employee_run: attendeeForm.employee_run,
+        certificate_file_path: 'mock_cert.pdf',
+        status: attendeeForm.status
+      }]);
+
+      if (certError) {
+        console.error("Error al registrar trabajador en Supabase:", certError);
+      } else {
+        await supabase.from('trainings')
+          .update({ attendee_count: (selectedTraining.attendee_count || 0) + 1 })
+          .eq('id', selectedTraining.id);
+      }
+      window.location.reload();
+      return;
+    } else if (apiMode) {
       await fetch(`${BASE_API_URL}/trainings/${selectedTraining.id}/employees`, {
         method: 'POST',
         headers: getRequestHeaders(),
@@ -820,7 +1106,33 @@ export default function App() {
 
     triggerSaveState({ accidents: updatedAccs, annualPlan: updatedPlan });
 
-    if (apiMode) {
+    if (cloudMode && supabase) {
+      const { data: accData, error: accError } = await supabase.from('accidents').insert([{
+        employee_name: accidentForm.employee_name,
+        date: accidentForm.date,
+        accident_type: accidentForm.accident_type,
+        description: accidentForm.description,
+        root_cause_method: '5_WHYS',
+        root_cause_analysis: whyAnalysis,
+        corrective_measures: correctiveActions,
+        status: 'ABIERTO'
+      }]).select();
+
+      if (accError) {
+        console.error("Error al registrar accidente en Supabase:", accError);
+      } else {
+        const eventMonth = new Date(accidentForm.date).getMonth() + 1;
+        await supabase.from('annual_plan').insert([{
+          task_name: `Investigación Accidente: ${accidentForm.employee_name}`,
+          month: eventMonth || 5,
+          type: 'AUDITORIA',
+          status: 'COMPLETADO',
+          responsible: 'Comité Paritario'
+        }]);
+      }
+      window.location.reload();
+      return;
+    } else if (apiMode) {
       await fetch(`${BASE_API_URL}/accidents`, {
         method: 'POST',
         headers: getRequestHeaders(),
@@ -865,7 +1177,13 @@ export default function App() {
     setAccidents(updatedAccidents);
     triggerSaveState({ accidents: updatedAccidents });
 
-    if (apiMode) {
+    if (cloudMode && supabase) {
+      const target = updatedAccidents.find(a => a.id === accId);
+      await supabase.from('accidents').update({ 
+        status: target.status, 
+        corrective_measures: target.corrective_measures 
+      }).eq('id', accId);
+    } else if (apiMode) {
       const target = updatedAccidents.find(a => a.id === accId);
       await fetch(`${BASE_API_URL}/accidents/${accId}/status`, {
         method: 'PUT',

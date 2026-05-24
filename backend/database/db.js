@@ -262,9 +262,10 @@ function seedData() {
 
     // 6. Insertar Capacitaciones
     const trainings = [
-      { id: 1, topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', planned_date: '2026-03-25 15:00:00', conducted_date: '2026-03-25 17:00:00', hours: 2, attendee_count: 5, status: 'COMPLETADA', attendance_list_file_path: 'uploads/lista_extintores_2026.pdf', photo_file_path: 'uploads/difusion_extintores.jpg', material_file_path: 'uploads/manual_extintores.pdf' },
-      { id: 2, topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', planned_date: '2026-05-18 09:00:00', conducted_date: '2026-05-18 13:00:00', hours: 4, attendee_count: 4, status: 'COMPLETADA', attendance_list_file_path: 'uploads/lista_rcp_2026.pdf', photo_file_path: 'uploads/difusion_rcp.jpg', material_file_path: null },
-      { id: 3, topic: 'Prevención de Riesgos de Atrapamientos y EPP', planned_date: '2026-06-22 14:00:00', conducted_date: null, hours: 2, attendee_count: 0, status: 'PENDIENTE', attendance_list_file_path: null, photo_file_path: null, material_file_path: null }
+      { id: 1, topic: 'USO DE EXTINTORES', planned_date: '2026-03-25 15:00:00', conducted_date: '2026-03-25 17:00:00', hours: 2, attendee_count: 42, status: 'COMPLETADA', attendance_list_file_path: 'uploads/lista_extintores_2026.pdf', photo_file_path: 'uploads/difusion_extintores.jpg', material_file_path: 'uploads/manual_extintores.pdf' },
+      { id: 2, topic: 'PLAN DE EMERGENCIA VP', planned_date: '2026-04-18 09:00:00', conducted_date: '2026-04-18 13:00:00', hours: 4, attendee_count: 20, status: 'COMPLETADA', attendance_list_file_path: 'uploads/lista_emergencia_2026.pdf', photo_file_path: 'uploads/difusion_emergencia.jpg', material_file_path: null },
+      { id: 3, topic: 'CURSO HOMBRE NUEVO', planned_date: '2026-05-20 08:30:00', conducted_date: '2026-05-20 16:30:00', hours: 8, attendee_count: 20, status: 'COMPLETADA', attendance_list_file_path: 'uploads/lista_hombre_nuevo.pdf', photo_file_path: null, material_file_path: null },
+      { id: 4, topic: 'REGLAMENTO DE TRANSITO VP', planned_date: '2026-06-22 14:00:00', conducted_date: null, hours: 2, attendee_count: 0, status: 'PENDIENTE', attendance_list_file_path: null, photo_file_path: null, material_file_path: null }
     ];
 
     trainings.forEach(t => {
@@ -273,22 +274,67 @@ function seedData() {
     });
 
     // 7. Insertar Acreditaciones / Certificados individuales de Trabajadores
-    const certificates = [
-      { training_id: 1, employee_name: 'Juan Pérez', employee_run: '12.345.678-9', certificate_file_path: 'uploads/cert_juan_extintores.pdf', status: 'APROBADO' },
-      { training_id: 1, employee_name: 'María Gómez', employee_run: '15.432.109-8', certificate_file_path: 'uploads/cert_maria_extintores.pdf', status: 'APROBADO' },
-      { training_id: 1, employee_name: 'Pedro Silva', employee_run: '11.222.333-k', certificate_file_path: 'uploads/cert_pedro_extintores.pdf', status: 'APROBADO' },
-      { training_id: 1, employee_name: 'Carlos Mendoza', employee_run: '18.555.666-4', certificate_file_path: 'uploads/cert_carlos_extintores.pdf', status: 'APROBADO' },
-      { training_id: 1, employee_name: 'Ana López', employee_run: '14.999.888-7', certificate_file_path: 'uploads/cert_ana_extintores.pdf', status: 'APROBADO' },
-
-      { training_id: 2, employee_name: 'Juan Pérez', employee_run: '12.345.678-9', certificate_file_path: 'uploads/cert_juan_rcp.pdf', status: 'APROBADO' },
-      { training_id: 2, employee_name: 'María Gómez', employee_run: '15.432.109-8', certificate_file_path: 'uploads/cert_maria_rcp.pdf', status: 'APROBADO' },
-      { training_id: 2, employee_name: 'Pedro Silva', employee_run: '11.222.333-k', certificate_file_path: 'uploads/cert_pedro_rcp.pdf', status: 'APROBADO' },
-      { training_id: 2, employee_name: 'Ana López', employee_run: '14.999.888-7', certificate_file_path: 'uploads/cert_ana_rcp.pdf', status: 'APROBADO' }
+    const workersList = [
+      { run: '17.912.080-1', name: 'Raúl Eduardo Canumán' },
+      { run: '13.308.510-6', name: 'Raúl Humberto Marquez' },
+      { run: '8.889.729-3', name: 'Roberto Hernan Soto' },
+      { run: '13.343.487-9', name: 'Gonzalo Javier Jara' },
+      { run: '11.939.077-k', name: 'Jose Antonio Lazo' },
+      { run: '16.450.297-k', name: 'Victor Manuel Gahona' },
+      { run: '15.053.206-k', name: 'Jaime Guillermo Ledezma' },
+      { run: '10.177.916-5', name: 'Sergio Hernan Rodriguez' },
+      { run: '16.552.066-1', name: 'Cristian Antonio Valdivia' },
+      { run: '13.668.078-1', name: 'Alvaro Gabriel Zuñiga' },
+      { run: '24.709.674-4', name: 'Jorge Eduardo Padilla' },
+      { run: '18.506.539-1', name: 'Christian Vladimir Nuñez' },
+      { run: '24.520.937-1', name: 'Fernando Callata' },
+      { run: '15.062.226-3', name: 'Augusto Patricio Garrido' },
+      { run: '20.285.671-3', name: 'Vicente Joaquin Perez' },
+      { run: '18.512.091-0', name: 'Jaime Esteban Olivares' },
+      { run: '12.527.718-7', name: 'Marcelo David Sepulveda' },
+      { run: '10.780.852-3', name: 'Nadia Katherine Mora' },
+      { run: '15.166.603-5', name: 'Franco Antonio Cerda' },
+      { run: '24.275.965-6', name: 'Everth Lazcano' },
+      { run: '17.363.534-6', name: 'Cristian Sebastián Muñoz' },
+      { run: '25.574.995-1', name: 'Marco Antonio Hurtado' },
+      { run: '25.999.182-k', name: 'Maria Mercedes Diaz' },
+      { run: '17.161.426-0', name: 'Mario Andres Ruz' },
+      { run: '13.431.732-9', name: 'Rene Patricio Carvajal' },
+      { run: '20.260.272-k', name: 'Brandon Lukas Fernandez' },
+      { run: '15.596.126-0', name: 'Wilson Marcelo Diaz' },
+      { run: '18.483.076-0', name: 'Camila Belen Nava' },
+      { run: '8.942.885-8', name: 'Luis Alejandro Lillo' },
+      { run: '20.093.748-1', name: 'Kevin Yerko Quispe' },
+      { run: '20.428.316-8', name: 'Hector Yusseff Missene' },
+      { run: '20.947.050-0', name: 'David Andres Diaz' },
+      { run: '21.151.926-6', name: 'Diego Andres Salgado' },
+      { run: '20.212.924-2', name: 'Andrés Sebastian Miranda' },
+      { run: '19.204.801-k', name: 'Javiera Macarena Marañado' },
+      { run: '25.203.659-8', name: 'Maiker Huarachi' },
+      { run: '17.422.196-0', name: 'Fabian Andres Soto' },
+      { run: '26.432.139-5', name: 'Maria Alejandra Perez' },
+      { run: '13.776.212-9', name: 'Marlen Andrea Silva' },
+      { run: '18.754.714-8', name: 'Paola Tatiana Zepeda' },
+      { run: '15.166.505-5', name: 'Lucas Brian Pizarro' },
+      { run: '19.505.005-8', name: 'Brian Sebastian Araya' }
     ];
 
-    certificates.forEach(c => {
+    workersList.forEach((w, idx) => {
+      // Todos hacen Uso de Extintores
       db.run(`INSERT INTO training_employees (training_id, employee_name, employee_run, certificate_file_path, status) VALUES (?, ?, ?, ?, ?)`,
-        [c.training_id, c.employee_name, c.employee_run, c.certificate_file_path, c.status]);
+        [1, w.name, w.run, 'uploads/cert_extintores.pdf', 'APROBADO']);
+
+      // Los primeros 20 hacen Plan de Emergencia
+      if (idx < 20) {
+        db.run(`INSERT INTO training_employees (training_id, employee_name, employee_run, certificate_file_path, status) VALUES (?, ?, ?, ?, ?)`,
+          [2, w.name, w.run, 'uploads/cert_emergencia.pdf', 'APROBADO']);
+      }
+
+      // Los siguientes 20 hacen Hombre Nuevo
+      if (idx >= 20 && idx < 40) {
+        db.run(`INSERT INTO training_employees (training_id, employee_name, employee_run, certificate_file_path, status) VALUES (?, ?, ?, ?, ?)`,
+          [3, w.name, w.run, 'uploads/cert_hombre_nuevo.pdf', 'APROBADO']);
+      }
     });
 
     // 8. Insertar Accidentes (Investigación - 5 Porqués)
