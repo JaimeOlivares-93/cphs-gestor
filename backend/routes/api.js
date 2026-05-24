@@ -11,6 +11,38 @@ const getFileUrl = (req, filePath) => {
   return `${protocol}://${host}/${filePath.replace(/\\/g, '/')}`;
 };
 
+// =============================================================
+// ENDPOINT: Autenticación de Administrador (Servidor Privado)
+// =============================================================
+router.post('/auth/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username && username.toLowerCase() === 'admin' && password === 'cphs26') {
+    return res.json({ 
+      success: true, 
+      role: 'ADMIN', 
+      token: 'cphs-secure-jwt-simulation-token-2026' 
+    });
+  }
+  return res.status(401).json({ 
+    error: 'Credenciales inválidas. Intente nuevamente.' 
+  });
+});
+
+// =============================================================
+// MIDDLEWARE: Control de Acceso Basado en Roles (RBAC) Seguro
+// =============================================================
+const authorizeRole = (allowedRole) => {
+  return (req, res, next) => {
+    const userRole = req.headers['x-user-role'] || 'PUBLIC';
+    if (userRole !== allowedRole) {
+      return res.status(403).json({ 
+        error: 'Acceso Denegado: Su rol de usuario (Público/Trabajador) no tiene permisos para realizar modificaciones.' 
+      });
+    }
+    next();
+  };
+};
+
 // -------------------------------------------------------------
 // 1. DASHBOARD ENDPOINTS
 // -------------------------------------------------------------
@@ -126,7 +158,7 @@ router.get('/dashboard/alerts', async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// 2. MÓDULO DE REUNIONES Y COMPROMISOS
+// 2. MÓDULO DE REUNIONES Y COMPROMISOS (PROTEGIDO POR RBAC)
 // -------------------------------------------------------------
 
 router.get('/meetings', async (req, res) => {
@@ -159,7 +191,7 @@ router.get('/meetings/:id', async (req, res) => {
   }
 });
 
-router.post('/meetings', upload.single('acta'), async (req, res) => {
+router.post('/meetings', authorizeRole('ADMIN'), upload.single('acta'), async (req, res) => {
   try {
     const { title, type, date, description, attendees } = req.body;
     const act_file_path = req.file ? `uploads/${req.file.filename}` : null;
@@ -190,7 +222,7 @@ router.post('/meetings', upload.single('acta'), async (req, res) => {
   }
 });
 
-router.put('/meetings/:id/upload-act', upload.single('acta'), async (req, res) => {
+router.put('/meetings/:id/upload-act', authorizeRole('ADMIN'), upload.single('acta'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No se ha subido ningún archivo' });
     
@@ -209,7 +241,7 @@ router.put('/meetings/:id/upload-act', upload.single('acta'), async (req, res) =
   }
 });
 
-router.post('/meetings/:id/commitments', async (req, res) => {
+router.post('/meetings/:id/commitments', authorizeRole('ADMIN'), async (req, res) => {
   try {
     const { description, responsible_name, due_date } = req.body;
     const result = await db.run(
@@ -223,7 +255,7 @@ router.post('/meetings/:id/commitments', async (req, res) => {
   }
 });
 
-router.put('/commitments/:id', async (req, res) => {
+router.put('/commitments/:id', authorizeRole('ADMIN'), async (req, res) => {
   try {
     const { status } = req.body;
     const closed_at = status === 'COMPLETADO' ? new Date().toISOString() : null;
@@ -239,7 +271,7 @@ router.put('/commitments/:id', async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// 3. MÓDULO DE INSPECCIONES Y HALLAZGOS
+// 3. MÓDULO DE INSPECCIONES Y HALLAZGOS (PROTEGIDO POR RBAC)
 // -------------------------------------------------------------
 
 router.get('/inspections', async (req, res) => {
@@ -267,7 +299,7 @@ router.get('/inspections', async (req, res) => {
   }
 });
 
-router.post('/inspections', upload.single('report'), async (req, res) => {
+router.post('/inspections', authorizeRole('ADMIN'), upload.single('report'), async (req, res) => {
   try {
     const { title, planned_date, conducted_date, inspector_name } = req.body;
     const report_file_path = req.file ? `uploads/${req.file.filename}` : null;
@@ -285,7 +317,7 @@ router.post('/inspections', upload.single('report'), async (req, res) => {
   }
 });
 
-router.post('/inspections/:id/findings', upload.single('evidence'), async (req, res) => {
+router.post('/inspections/:id/findings', authorizeRole('ADMIN'), upload.single('evidence'), async (req, res) => {
   try {
     const { description, risk_level, due_date, corrective_measure } = req.body;
     const evidence_file_path = req.file ? `uploads/${req.file.filename}` : null;
@@ -302,7 +334,7 @@ router.post('/inspections/:id/findings', upload.single('evidence'), async (req, 
   }
 });
 
-router.put('/findings/:id/close', async (req, res) => {
+router.put('/findings/:id/close', authorizeRole('ADMIN'), async (req, res) => {
   try {
     const closed_at = new Date().toISOString();
     await db.run(
@@ -316,7 +348,7 @@ router.put('/findings/:id/close', async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// 4. MÓDULO DE CAPACITACIONES Y CERTIFICADOS
+// 4. MÓDULO DE CAPACITACIONES Y CERTIFICADOS (PROTEGIDO POR RBAC)
 // -------------------------------------------------------------
 
 router.get('/trainings', async (req, res) => {
@@ -347,7 +379,7 @@ router.get('/trainings', async (req, res) => {
 });
 
 // Creación de una capacitación
-router.post('/trainings', upload.fields([
+router.post('/trainings', authorizeRole('ADMIN'), upload.fields([
   { name: 'attendance_list', maxCount: 1 },
   { name: 'photo', maxCount: 1 },
   { name: 'material', maxCount: 1 }
@@ -374,7 +406,7 @@ router.post('/trainings', upload.fields([
 });
 
 // Registrar un trabajador y subir su certificado de capacitación
-router.post('/trainings/:id/employees', upload.single('certificate'), async (req, res) => {
+router.post('/trainings/:id/employees', authorizeRole('ADMIN'), upload.single('certificate'), async (req, res) => {
   try {
     const { employee_name, employee_run, status } = req.body;
     const certificate_file_path = req.file ? `uploads/${req.file.filename}` : null;
@@ -430,7 +462,7 @@ router.get('/certificates', async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// 5. MÓDULO DE INVESTIGACIÓN DE ACCIDENTES (5 PORQUÉS)
+// 5. MÓDULO DE INVESTIGACIÓN DE ACCIDENTES (5 PORQUÉS - PROTEGIDO)
 // -------------------------------------------------------------
 
 router.get('/accidents', async (req, res) => {
@@ -447,7 +479,7 @@ router.get('/accidents', async (req, res) => {
   }
 });
 
-router.post('/accidents', async (req, res) => {
+router.post('/accidents', authorizeRole('ADMIN'), async (req, res) => {
   try {
     const { employee_name, date, accident_type, description, root_cause_analysis, corrective_measures } = req.body;
 
@@ -478,7 +510,7 @@ router.post('/accidents', async (req, res) => {
   }
 });
 
-router.put('/accidents/:id/status', async (req, res) => {
+router.put('/accidents/:id/status', authorizeRole('ADMIN'), async (req, res) => {
   try {
     const { status, corrective_measures } = req.body;
     
@@ -501,7 +533,7 @@ router.put('/accidents/:id/status', async (req, res) => {
 });
 
 // -------------------------------------------------------------
-// 6. MÓDULO DE CRONOGRAMA ANUAL (PLAN DE TRABAJO GANTT)
+// 6. MÓDULO DE CRONOGRAMA ANUAL (PLAN DE TRABAJO GANTT - PROTEGIDO)
 // -------------------------------------------------------------
 
 router.get('/annual-plan', async (req, res) => {
@@ -513,7 +545,7 @@ router.get('/annual-plan', async (req, res) => {
   }
 });
 
-router.put('/annual-plan/:id/status', async (req, res) => {
+router.put('/annual-plan/:id/status', authorizeRole('ADMIN'), async (req, res) => {
   try {
     const { status } = req.body;
     await db.run(

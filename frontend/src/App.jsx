@@ -20,13 +20,13 @@ import {
   X, 
   Award,
   ChevronRight,
-  TrendingUp,
-  FileMinus
+  Eye,
+  Lock,
+  Edit,
+  ArrowLeft,
+  LogOut
 } from 'lucide-react';
 
-// ============================================================================
-// DATOS SEMILLA DE RESPALDO (Offline Demo State)
-// ============================================================================
 const INITIAL_SEED_DATA = {
   meetings: [
     { id: 1, title: 'Constitución del Comité Paritario 2026', type: 'EXTRAORDINARIA', date: '2026-01-15', description: 'Reunión inicial para constituir los cargos del comité, asignar presidente y secretario, y establecer el cronograma anual.', attendees: ['Juan Pérez', 'María Gómez', 'Pedro Silva', 'Ana López', 'Prevencionista CPHS'], act_file_path: 'mock_acta_constitucion.pdf', status: 'COMPLETADA' },
@@ -59,9 +59,9 @@ const INITIAL_SEED_DATA = {
     { id: 5, inspection_id: 3, description: 'Falta señalización de salida de emergencia en pasillo del sector B.', risk_level: 'BAJO', corrective_measure: 'Adquirir y fijar letrero fotoluminiscente de evacuación.', due_date: '2026-05-30', status: 'ABIERTO', evidence_file_path: null, closed_at: null }
   ],
   trainings: [
-    { id: 1, topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', planned_date: '2026-03-25', conducted_date: '2026-03-25', hours: 2, attendee_count: 5, status: 'COMPLETADA', attendance_list_file_path: 'mock_lista_ext.pdf', photo_file_path: 'mock_foto_ext.jpg', material_file_path: 'mock_manual_ext.pdf' },
-    { id: 2, topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', planned_date: '2026-05-18', conducted_date: '2026-05-18', hours: 4, attendee_count: 4, status: 'COMPLETADA', attendance_list_file_path: 'mock_lista_rcp.pdf', photo_file_path: 'mock_foto_rcp.jpg', material_file_path: null },
-    { id: 3, topic: 'Prevención de Riesgos de Atrapamientos y EPP', planned_date: '2026-06-22', conducted_date: null, hours: 2, attendee_count: 0, status: 'PENDIENTE', attendance_list_file_path: null, photo_file_path: null, material_file_path: null }
+    { id: 1, topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', category: 'SEGURIDAD', planned_date: '2026-03-25', conducted_date: '2026-03-25', hours: 2, attendee_count: 5, status: 'COMPLETADA', attendance_list_file_path: 'mock_lista_ext.pdf', photo_file_path: 'mock_foto_ext.jpg', material_file_path: 'mock_manual_ext.pdf' },
+    { id: 2, topic: 'Curso Básico de Primeros Auxilios y Reanimación RCP', category: 'SALUD', planned_date: '2026-05-18', conducted_date: '2026-05-18', hours: 4, attendee_count: 4, status: 'COMPLETADA', attendance_list_file_path: 'mock_lista_rcp.pdf', photo_file_path: 'mock_foto_rcp.jpg', material_file_path: null },
+    { id: 3, topic: 'Prevención de Riesgos de Atrapamientos y EPP', category: 'SEGURIDAD', planned_date: '2026-06-22', conducted_date: null, hours: 2, attendee_count: 0, status: 'PENDIENTE', attendance_list_file_path: null, photo_file_path: null, material_file_path: null }
   ],
   training_employees: [
     { id: 1, training_id: 1, employee_name: 'Juan Pérez', employee_run: '12.345.678-9', certificate_file_path: 'mock_cert_juan.pdf', status: 'APROBADO', training_topic: 'Uso y Manejo de Extintores Portátiles PQS y CO2', training_date: '2026-03-25' },
@@ -129,10 +129,74 @@ const BASE_API_URL = 'http://localhost:5000/api';
 export default function App() {
   // Navigation State
   const [activeTab, setActiveTab] = useState('dashboard');
-  
-  // App Connection State
   const [apiMode, setApiMode] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // ==========================================
+  // NUEVO: Enrutamiento Principal Condicional (Welcome Portal)
+  // ==========================================
+  const [currentScreen, setCurrentScreen] = useState(() => {
+    const cached = localStorage.getItem('cphs_screen_production_v4');
+    return cached || 'welcome'; // 'welcome' o 'app'
+  });
+
+  useEffect(() => {
+    localStorage.setItem('cphs_screen_production_v4', currentScreen);
+  }, [currentScreen]);
+
+  // ==========================================
+  // NUEVO: Control de Acceso Basado en Roles (RBAC)
+  // ==========================================
+  const [userRole, setUserRole] = useState(() => {
+    const cached = localStorage.getItem('cphs_role_production_v4');
+    return cached || 'PUBLIC'; 
+  });
+
+  useEffect(() => {
+    localStorage.setItem('cphs_role_production_v4', userRole);
+  }, [userRole]);
+
+  // ==========================================
+  // NUEVO: Estados del Portal de Acceso (Login)
+  // ==========================================
+  const [loginUser, setLoginUser] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState(null);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // ==========================================
+  // NUEVO: Trabajador del Mes
+  // ==========================================
+  const [workerOfMonth, setWorkerOfMonth] = useState(() => {
+    const cached = localStorage.getItem('cphs_prod_worker_month_v4');
+    if (cached) return JSON.parse(cached);
+    return {
+      name: 'Carlos Mendoza',
+      role: 'Operario de Bodega y Despacho',
+      reason: 'Reportó diligentemente 12 condiciones de riesgo y mantuvo asistencia del 100% en charlas de seguridad de EPP en el Taller.',
+      avatar: 'C'
+    };
+  });
+
+  const [showWorkerModal, setShowWorkerModal] = useState(false);
+  const [workerForm, setWorkerForm] = useState({ name: workerOfMonth.name, role: workerOfMonth.role, reason: workerOfMonth.reason });
+
+  useEffect(() => {
+    localStorage.setItem('cphs_prod_worker_month_v4', JSON.stringify(workerOfMonth));
+  }, [workerOfMonth]);
+
+  const handleSaveWorkerOfMonth = (e) => {
+    e.preventDefault();
+    const updated = {
+      name: workerForm.name,
+      role: workerForm.role,
+      reason: workerForm.reason,
+      avatar: workerForm.name ? workerForm.name.charAt(0).toUpperCase() : 'W'
+    };
+    setWorkerOfMonth(updated);
+    setShowWorkerModal(false);
+  };
 
   // Entities States
   const [meetings, setMeetings] = useState([]);
@@ -152,6 +216,9 @@ export default function App() {
   const [selectedAccident, setSelectedAccident] = useState(null);
   const [activeCertificatePdf, setActiveCertificatePdf] = useState(null);
 
+  // Filter states for trainings
+  const [trainingCategoryFilter, setTrainingCategoryFilter] = useState('ALL');
+
   // Modal / Form trigger states
   const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [showInspectionModal, setShowInspectionModal] = useState(false);
@@ -160,34 +227,109 @@ export default function App() {
   const [showAttendeeModal, setShowAttendeeModal] = useState(false);
   const [showAccidentModal, setShowAccidentModal] = useState(false);
 
+  // File path Base64 states (for simulation fallback)
+  const [meetingFileBase64, setMeetingFileBase64] = useState(null);
+  const [findingFileBase64, setFindingFileBase64] = useState(null);
+
+  // Raw file objects for API Multipart Upload
+  const [meetingRawFile, setMeetingRawFile] = useState(null);
+  const [findingRawFile, setFindingRawFile] = useState(null);
+
   // Form Fields State
   const [meetingForm, setMeetingForm] = useState({ title: '', type: 'ORDINARIA', date: '', description: '', attendees: '' });
-  const [commitmentForm, setCommitmentForm] = useState({ description: '', responsible_name: '', due_date: '' });
   const [inspectionForm, setInspectionForm] = useState({ title: '', planned_date: '', conducted_date: '', inspector_name: '' });
   const [findingForm, setFindingForm] = useState({ description: '', risk_level: 'MEDIO', due_date: '', corrective_measure: '' });
-  const [trainingForm, setTrainingForm] = useState({ topic: '', planned_date: '', conducted_date: '', hours: 1 });
+  const [trainingForm, setTrainingForm] = useState({ topic: '', category: 'SEGURIDAD', planned_date: '', conducted_date: '', hours: 1 });
   const [attendeeForm, setAttendeeForm] = useState({ employee_name: '', employee_run: '', status: 'APROBADO' });
   const [accidentForm, setAccidentForm] = useState({
-    employee_name: '',
-    date: '',
-    accident_type: 'LEVE',
-    description: '',
+    employee_name: '', date: '', accident_type: 'LEVE', description: '',
     why1: '', why2: '', why3: '', why4: '', why5: '',
-    measure1: '', measure1Date: '',
-    measure2: '', measure2Date: ''
+    measure1: '', measure1Date: '', measure2: '', measure2Date: ''
   });
 
-  // ============================================================================
-  // INITIAL DATA INITIALIZER (Sync with Backend or fallback to localStorage)
-  // ============================================================================
+  // Common Headers for request signing (RBAC integration)
+  const getRequestHeaders = () => {
+    return {
+      'Content-Type': 'application/json',
+      'x-user-role': userRole
+    };
+  };
+
+  const getMultipartHeaders = () => {
+    return {
+      'x-user-role': userRole
+    };
+  };
+
+  // ==========================================
+  // NUEVO: Manejadores de Autenticación y Logout
+  // ==========================================
+  const handlePublicIngress = () => {
+    setUserRole('PUBLIC');
+    setCurrentScreen('app');
+  };
+
+  const handleAdminLogin = async (e) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    setLoginError(null);
+
+    try {
+      const response = await fetch(`${BASE_API_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: loginUser,
+          password: loginPassword
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUserRole(data.role || 'ADMIN');
+        setCurrentScreen('app');
+        setLoginUser('');
+        setLoginPassword('');
+      } else {
+        const errData = await response.json();
+        setLoginError(errData.error || 'Credenciales inválidas. Verifique el usuario y la contraseña.');
+      }
+    } catch (err) {
+      console.warn('Fallo de conexión al backend. Usando autenticación de respaldo local.', err);
+      // Simular retardo de red de 600ms para realismo premium
+      await new Promise(resolve => setTimeout(resolve, 600));
+      const encodedPassword = btoa(loginPassword);
+      if (loginUser.toLowerCase() === 'admin' && encodedPassword === 'Y3BoczI2') {
+        setUserRole('ADMIN');
+        setCurrentScreen('app');
+        setLoginUser('');
+        setLoginPassword('');
+      } else {
+        setLoginError('Credenciales inválidas. Verifique el usuario y la contraseña.');
+      }
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleLogout = () => {
+    setCurrentScreen('welcome');
+    setUserRole('PUBLIC');
+    setSelectedMeeting(null);
+    setSelectedInspection(null);
+    setSelectedTraining(null);
+    setSelectedAccident(null);
+  };
+
+  // INITIAL DATA SYNC
   useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
-        // Intentar conectar con la API de Node
         const testRes = await fetch(`${BASE_API_URL}/dashboard/stats`);
         if (testRes.ok) {
-          // Si el servidor está online, hacer los fetches correspondientes
           const [resMeet, resInsp, resTrain, resAcc, resPlan, resCert] = await Promise.all([
             fetch(`${BASE_API_URL}/meetings`),
             fetch(`${BASE_API_URL}/inspections`),
@@ -204,52 +346,39 @@ export default function App() {
           setAnnualPlan(await resPlan.json());
           setCertificates(await resCert.json());
 
-          // El backend asocia compromisos en los endpoints /meetings/:id
-          // Para simplificar, acumulamos todos los compromisos haciendo fetches de cada reunión
           const loadedMeetings = await resMeet.clone().json();
           let allComs = [];
           for (let m of loadedMeetings) {
             const detail = await fetch(`${BASE_API_URL}/meetings/${m.id}`);
             const data = await detail.json();
-            if (data.commitments) {
-              allComs = [...allComs, ...data.commitments];
-            }
+            if (data.commitments) allComs = [...allComs, ...data.commitments];
           }
           setCommitments(allComs);
 
-          // Extraemos todos los hallazgos de las inspecciones
           const loadedInspections = await resInsp.clone().json();
           let allFindings = [];
           loadedInspections.forEach(i => {
-            if (i.findings) {
-              allFindings = [...allFindings, ...i.findings];
-            }
+            if (i.findings) allFindings = [...allFindings, ...i.findings];
           });
           setFindings(allFindings);
-
           setApiMode(true);
-          console.log("CPHS Gestor: Conectado a la base de datos central en local.");
         } else {
           throw new Error("API Offline");
         }
       } catch (err) {
-        console.warn("CPHS API offline o no instalada. Iniciando Modo Demo local.");
         setApiMode(false);
-        
-        // Cargar desde localStorage o inicializar con semilla
-        const cached = localStorage.getItem('cphs_store_v1');
+        const cached = localStorage.getItem('cphs_store_responsive_v4');
         if (cached) {
           const parsed = JSON.parse(cached);
-          setMeetings(parsed.meetings);
-          setCommitments(parsed.commitments);
-          setInspections(parsed.inspections);
-          setFindings(parsed.findings);
-          setTrainings(parsed.trainings);
-          setCertificates(parsed.training_employees || parsed.certificates);
-          setAccidents(parsed.accidents);
-          setAnnualPlan(parsed.annual_plan);
+          setMeetings(parsed.meetings || INITIAL_SEED_DATA.meetings);
+          setCommitments(parsed.commitments || INITIAL_SEED_DATA.commitments);
+          setInspections(parsed.inspections || INITIAL_SEED_DATA.inspections);
+          setFindings(parsed.findings || INITIAL_SEED_DATA.findings);
+          setTrainings(parsed.trainings || INITIAL_SEED_DATA.trainings);
+          setCertificates(parsed.training_employees || parsed.certificates || INITIAL_SEED_DATA.training_employees);
+          setAccidents(parsed.accidents || INITIAL_SEED_DATA.accidents);
+          setAnnualPlan(parsed.annual_plan || INITIAL_SEED_DATA.annual_plan);
         } else {
-          // Inicializar por primera vez
           setMeetings(INITIAL_SEED_DATA.meetings);
           setCommitments(INITIAL_SEED_DATA.commitments);
           setInspections(INITIAL_SEED_DATA.inspections);
@@ -258,8 +387,7 @@ export default function App() {
           setCertificates(INITIAL_SEED_DATA.training_employees);
           setAccidents(INITIAL_SEED_DATA.accidents);
           setAnnualPlan(INITIAL_SEED_DATA.annual_plan);
-          
-          saveToLocalStorage(INITIAL_SEED_DATA);
+          triggerSaveState(INITIAL_SEED_DATA);
         }
       } finally {
         setLoading(false);
@@ -268,15 +396,8 @@ export default function App() {
     loadData();
   }, []);
 
-  // Función para guardar en LocalStorage
-  const saveToLocalStorage = (data) => {
-    localStorage.setItem('cphs_store_v1', JSON.stringify(data));
-  };
-
-  // Guardar estado local reactivamente al cambiar cualquier entidad en modo Demo
-  const triggerLocalSave = (updatedFields) => {
-    if (apiMode) return; // Si es API mode, se maneja por servidor HTTP
-    
+  const triggerSaveState = (updatedFields) => {
+    if (apiMode) return;
     const currentStore = {
       meetings: updatedFields.meetings || meetings,
       commitments: updatedFields.commitments || commitments,
@@ -287,45 +408,52 @@ export default function App() {
       accidents: updatedFields.accidents || accidents,
       annual_plan: updatedFields.annualPlan || annualPlan
     };
-    saveToLocalStorage(currentStore);
+    localStorage.setItem('cphs_store_responsive_v4', JSON.stringify(currentStore));
   };
 
-  // ============================================================================
-  // METRICAS Y LOGICA DEL DASHBOARD (CALCULADOS EN TIEMPO REAL)
-  // ============================================================================
+  // SAFE FILE UPLOAD BASE64 LOADER (For fallback)
+  const handleSafeFileBase64 = (e, setBase64, setRawFile) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("⚠️ Límite de seguridad superado: El archivo excede el tamaño máximo permitido de 5 MB.");
+      e.target.value = null;
+      return;
+    }
+
+    const allowedMimes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    if (!allowedMimes.includes(file.type)) {
+      alert("⚠️ Formato denegado por seguridad: Solo se admiten documentos PDF e imágenes (PNG/JPG/WebP).");
+      e.target.value = null;
+      return;
+    }
+
+    setRawFile(file);
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setBase64(reader.result); 
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // METRICAS EN TIEMPO REAL
   const stats = useMemo(() => {
-    const currentMonth = new Date().getMonth() + 1; // 1-12
+    const currentMonth = new Date().getMonth() + 1;
     
-    // Cumplimiento Mensual (Plan de Trabajo Anual)
     const monthTasks = annualPlan.filter(t => t.month === currentMonth);
     const completedMonthTasks = monthTasks.filter(t => t.status === 'COMPLETADO');
-    const complianceMonth = monthTasks.length > 0 
-      ? Math.round((completedMonthTasks.length / monthTasks.length) * 100) 
-      : 0;
+    const complianceMonth = monthTasks.length > 0 ? Math.round((completedMonthTasks.length / monthTasks.length) * 100) : 0;
 
-    // Cumplimiento Anual Acumulado (hasta el mes actual inclusive)
     const yearTasks = annualPlan.filter(t => t.month <= currentMonth);
     const completedYearTasks = yearTasks.filter(t => t.status === 'COMPLETADO');
-    const complianceYear = yearTasks.length > 0 
-      ? Math.round((completedYearTasks.length / yearTasks.length) * 100) 
-      : 0;
+    const complianceYear = yearTasks.length > 0 ? Math.round((completedYearTasks.length / yearTasks.length) * 100) : 0;
 
-    // Contadores de Reuniones
     const meetCom = meetings.filter(m => m.status === 'COMPLETADA').length;
-    const meetPen = meetings.filter(m => m.status === 'PENDIENTE').length;
-    const meetAtr = meetings.filter(m => m.status === 'ATRASADA').length;
-
-    // Contadores de Inspecciones
     const inspCom = inspections.filter(i => i.status === 'COMPLETADA').length;
-    const inspPen = inspections.filter(i => i.status === 'PENDIENTE').length;
-    const inspAtr = inspections.filter(i => i.status === 'ATRASADA').length;
-
-    // Contadores de Capacitaciones
     const trainCom = trainings.filter(t => t.status === 'COMPLETADA').length;
-    const trainPen = trainings.filter(t => t.status === 'PENDIENTE').length;
-    const trainAtr = trainings.filter(t => t.status === 'ATRASADA').length;
 
-    // Horas Hombre acumuladas de formación
     let totalHH = 0;
     trainings.forEach(t => {
       if (t.status === 'COMPLETADA') {
@@ -334,44 +462,26 @@ export default function App() {
       }
     });
 
-    // Cantidad total de compromisos
     const completedComs = commitments.filter(c => c.status === 'COMPLETADO').length;
     const totalComs = commitments.length;
 
     return {
       complianceMonth,
       complianceYear,
-      meetings: { completadas: meetCom, pendientes: meetPen, atrasadas: meetAtr },
-      inspections: { completadas: inspCom, pendientes: inspPen, atrasadas: inspAtr },
-      trainings: { completadas: trainCom, pendientes: trainPen, atrasadas: trainAtr },
+      meetings: meetCom,
+      inspections: inspCom,
+      trainings: trainCom,
       totalHoursHomme: totalHH,
       commitments: { completed: completedComs, total: totalComs }
     };
   }, [meetings, commitments, inspections, trainings, certificates, annualPlan]);
 
-  // Alertas tempranas
   const alerts = useMemo(() => {
-    // 1. Compromisos pendientes próximos a vencer
-    const upcomingCommitments = commitments
-      .filter(c => c.status === 'PENDIENTE')
-      .slice(0, 4);
+    const upcomingCommitments = commitments.filter(c => c.status === 'PENDIENTE').slice(0, 4);
+    const criticalFindings = findings.filter(f => f.status === 'ABIERTO' && (f.risk_level === 'CRITICO' || f.risk_level === 'ALTO'));
+    return { upcomingCommitments, criticalFindings };
+  }, [commitments, findings]);
 
-    // 2. Hallazgos abiertos en inspección (Riesgos Altos o Críticos)
-    const criticalFindings = findings
-      .filter(f => f.status === 'ABIERTO' && (f.risk_level === 'CRITICO' || f.risk_level === 'ALTO'));
-
-    // 3. Tareas mensuales pendientes
-    const currentMonth = new Date().getMonth() + 1;
-    const pendingMonthTasks = annualPlan.filter(t => t.month === currentMonth && t.status === 'PENDIENTE');
-
-    return {
-      upcomingCommitments,
-      criticalFindings,
-      pendingMonthTasks
-    };
-  }, [commitments, findings, annualPlan]);
-
-  // Filtro de certificados del buscador
   const filteredCertificates = useMemo(() => {
     if (!certSearchQuery) return certificates;
     const q = certSearchQuery.toLowerCase();
@@ -382,60 +492,59 @@ export default function App() {
     );
   }, [certificates, certSearchQuery]);
 
-  // ============================================================================
-  // EVENT HANDLERS (Soporta Backend y Local Storage reactivamente)
-  // ============================================================================
+  const categorizedTrainings = useMemo(() => {
+    if (trainingCategoryFilter === 'ALL') return trainings;
+    return trainings.filter(t => t.category === trainingCategoryFilter);
+  }, [trainings, trainingCategoryFilter]);
 
-  // 1. Alternar estado del Cronograma Anual
+  // ACTIONS (Protegidas por Roles en la vista)
   const toggleAnnualTask = async (taskId) => {
+    if (userRole !== 'ADMIN') return;
     const updatedPlan = annualPlan.map(t => {
-      if (t.id === taskId) {
-        return { ...t, status: t.status === 'COMPLETADO' ? 'PENDIENTE' : 'COMPLETADO' };
-      }
+      if (t.id === taskId) return { ...t, status: t.status === 'COMPLETADO' ? 'PENDIENTE' : 'COMPLETADO' };
       return t;
     });
     setAnnualPlan(updatedPlan);
-    triggerLocalSave({ annualPlan: updatedPlan });
+    triggerSaveState({ annualPlan: updatedPlan });
 
     if (apiMode) {
       const task = updatedPlan.find(t => t.id === taskId);
       await fetch(`${BASE_API_URL}/annual-plan/${taskId}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getRequestHeaders(),
         body: JSON.stringify({ status: task.status })
       });
     }
   };
 
-  // 2. Alternar estado de un compromiso de reunión
   const toggleCommitment = async (comId) => {
+    if (userRole !== 'ADMIN') return;
     const updatedCommitments = commitments.map(c => {
       if (c.id === comId) {
         const nextStatus = c.status === 'COMPLETADO' ? 'PENDIENTE' : 'COMPLETADO';
         return { 
-          ...c, 
-          status: nextStatus,
+          ...c, status: nextStatus,
           closed_at: nextStatus === 'COMPLETADO' ? new Date().toISOString().split('T')[0] : null
         };
       }
       return c;
     });
     setCommitments(updatedCommitments);
-    triggerLocalSave({ commitments: updatedCommitments });
+    triggerSaveState({ commitments: updatedCommitments });
 
     if (apiMode) {
       const target = updatedCommitments.find(c => c.id === comId);
       await fetch(`${BASE_API_URL}/commitments/${comId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getRequestHeaders(),
         body: JSON.stringify({ status: target.status })
       });
     }
   };
 
-  // 3. Crear Nueva Reunión
   const handleCreateMeeting = async (e) => {
     e.preventDefault();
+    if (userRole !== 'ADMIN') return;
     const newId = meetings.length + 1;
     const newMeeting = {
       id: newId,
@@ -444,20 +553,19 @@ export default function App() {
       date: meetingForm.date,
       description: meetingForm.description,
       attendees: meetingForm.attendees ? meetingForm.attendees.split(',').map(a => a.trim()) : [],
-      act_file_path: meetingForm.title ? 'uploads/acta_simulada.pdf' : null,
+      act_file_path: meetingFileBase64 || 'mock_acta.pdf',
       status: 'COMPLETADA'
     };
 
     const updatedMeetings = [newMeeting, ...meetings];
     setMeetings(updatedMeetings);
-    
-    // Crear compromiso inicial si se desea
+
     let updatedCommitments = [...commitments];
     if (meetingForm.title) {
       const initialCommitment = {
         id: commitments.length + 1,
         meeting_id: newId,
-        description: `Elaborar plan de seguimiento para ${meetingForm.title}`,
+        description: `Elaborar plan de seguimiento para la sesión: ${meetingForm.title}`,
         responsible_name: 'Presidente CPHS',
         due_date: new Date(Date.now() + 15*24*60*60*1000).toISOString().split('T')[0],
         status: 'PENDIENTE',
@@ -467,7 +575,7 @@ export default function App() {
       setCommitments(updatedCommitments);
     }
 
-    triggerLocalSave({ meetings: updatedMeetings, commitments: updatedCommitments });
+    triggerSaveState({ meetings: updatedMeetings, commitments: updatedCommitments });
 
     if (apiMode) {
       const fd = new FormData();
@@ -476,23 +584,27 @@ export default function App() {
       fd.append('date', meetingForm.date);
       fd.append('description', meetingForm.description);
       fd.append('attendees', JSON.stringify(newMeeting.attendees));
-      
-      await fetch(`${BASE_API_URL}/meetings`, {
-        method: 'POST',
-        body: fd
+      if (meetingRawFile) {
+        fd.append('acta', meetingRawFile);
+      }
+      await fetch(`${BASE_API_URL}/meetings`, { 
+        method: 'POST', 
+        headers: getMultipartHeaders(),
+        body: fd 
       });
-      // Recargar datos reales
       window.location.reload();
     }
 
-    // Resetear form
     setMeetingForm({ title: '', type: 'ORDINARIA', date: '', description: '', attendees: '' });
+    setMeetingFileBase64(null);
+    setMeetingRawFile(null);
     setShowMeetingModal(false);
+    setSelectedMeeting(newMeeting);
   };
 
-  // 4. Crear Nueva Inspección
   const handleCreateInspection = async (e) => {
     e.preventDefault();
+    if (userRole !== 'ADMIN') return;
     const newId = inspections.length + 1;
     const newInsp = {
       id: newId,
@@ -500,18 +612,18 @@ export default function App() {
       planned_date: inspectionForm.planned_date,
       conducted_date: inspectionForm.conducted_date || null,
       inspector_name: inspectionForm.inspector_name,
-      report_file_path: inspectionForm.conducted_date ? 'uploads/informe_simulado.pdf' : null,
+      report_file_path: inspectionForm.conducted_date ? 'mock_report.pdf' : null,
       status: inspectionForm.conducted_date ? 'COMPLETADA' : 'PENDIENTE'
     };
 
     const updatedInsps = [newInsp, ...inspections];
     setInspections(updatedInsps);
-    triggerLocalSave({ inspections: updatedInsps });
+    triggerSaveState({ inspections: updatedInsps });
 
     if (apiMode) {
       await fetch(`${BASE_API_URL}/inspections`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getRequestHeaders(),
         body: JSON.stringify(newInsp)
       });
       window.location.reload();
@@ -519,11 +631,12 @@ export default function App() {
 
     setInspectionForm({ title: '', planned_date: '', conducted_date: '', inspector_name: '' });
     setShowInspectionModal(false);
+    setSelectedInspection(newInsp);
   };
 
-  // 5. Agregar Hallazgo a Inspección
   const handleCreateFinding = async (e) => {
     e.preventDefault();
+    if (userRole !== 'ADMIN') return;
     if (!selectedInspection) return;
 
     const newId = findings.length + 1;
@@ -535,80 +648,93 @@ export default function App() {
       corrective_measure: findingForm.corrective_measure,
       due_date: findingForm.due_date,
       status: 'ABIERTO',
-      evidence_file_path: 'uploads/evidencia_simulada.jpg',
+      evidence_file_path: findingFileBase64 || 'mock_evidence.jpg', 
       closed_at: null
     };
 
     const updatedFindings = [newFinding, ...findings];
     setFindings(updatedFindings);
-    triggerLocalSave({ findings: updatedFindings });
+    triggerSaveState({ findings: updatedFindings });
 
     if (apiMode) {
+      const fd = new FormData();
+      fd.append('description', findingForm.description);
+      fd.append('risk_level', findingForm.risk_level);
+      fd.append('corrective_measure', findingForm.corrective_measure);
+      fd.append('due_date', findingForm.due_date);
+      if (findingRawFile) {
+        fd.append('evidence', findingRawFile);
+      }
       await fetch(`${BASE_API_URL}/inspections/${selectedInspection.id}/findings`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newFinding)
+        headers: getMultipartHeaders(),
+        body: fd
       });
       window.location.reload();
     }
 
     setFindingForm({ description: '', risk_level: 'MEDIO', due_date: '', corrective_measure: '' });
+    setFindingFileBase64(null);
+    setFindingRawFile(null);
     setShowFindingModal(false);
   };
 
-  // 6. Cerrar un Hallazgo
   const handleCloseFinding = async (findingId) => {
+    if (userRole !== 'ADMIN') return;
     const updatedFindings = findings.map(f => {
-      if (f.id === findingId) {
-        return { ...f, status: 'CERRADO', closed_at: new Date().toISOString().split('T')[0] };
-      }
+      if (f.id === findingId) return { ...f, status: 'CERRADO', closed_at: new Date().toISOString().split('T')[0] };
       return f;
     });
     setFindings(updatedFindings);
-    triggerLocalSave({ findings: updatedFindings });
+    triggerSaveState({ findings: updatedFindings });
 
     if (apiMode) {
-      await fetch(`${BASE_API_URL}/findings/${findingId}/close`, { method: 'PUT' });
+      await fetch(`${BASE_API_URL}/findings/${findingId}/close`, { 
+        method: 'PUT',
+        headers: getRequestHeaders()
+      });
     }
   };
 
-  // 7. Crear Capacitación
   const handleCreateTraining = async (e) => {
     e.preventDefault();
+    if (userRole !== 'ADMIN') return;
     const newId = trainings.length + 1;
     const newTraining = {
       id: newId,
       topic: trainingForm.topic,
+      category: trainingForm.category,
       planned_date: trainingForm.planned_date,
       conducted_date: trainingForm.conducted_date || null,
       hours: Number(trainingForm.hours),
       attendee_count: 0,
       status: trainingForm.conducted_date ? 'COMPLETADA' : 'PENDIENTE',
-      attendance_list_file_path: trainingForm.conducted_date ? 'uploads/asistencia_simulada.pdf' : null,
-      photo_file_path: trainingForm.conducted_date ? 'uploads/foto_simulada.jpg' : null,
+      attendance_list_file_path: 'mock_asist.pdf',
+      photo_file_path: 'mock_photo.jpg',
       material_file_path: null
     };
 
     const updatedTrainings = [newTraining, ...trainings];
     setTrainings(updatedTrainings);
-    triggerLocalSave({ trainings: updatedTrainings });
+    triggerSaveState({ trainings: updatedTrainings });
 
     if (apiMode) {
       await fetch(`${BASE_API_URL}/trainings`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getRequestHeaders(),
         body: JSON.stringify(newTraining)
       });
       window.location.reload();
     }
 
-    setTrainingForm({ topic: '', planned_date: '', conducted_date: '', hours: 1 });
+    setTrainingForm({ topic: '', category: 'SEGURIDAD', planned_date: '', conducted_date: '', hours: 1 });
     setShowTrainingModal(false);
+    setSelectedTraining(newTraining);
   };
 
-  // 8. Registrar Trabajador en Curso y generar Certificado
   const handleAddAttendee = async (e) => {
     e.preventDefault();
+    if (userRole !== 'ADMIN') return;
     if (!selectedTraining) return;
 
     const newId = certificates.length + 1;
@@ -617,7 +743,7 @@ export default function App() {
       training_id: selectedTraining.id,
       employee_name: attendeeForm.employee_name,
       employee_run: attendeeForm.employee_run,
-      certificate_file_path: 'uploads/certificado_autogenerado.pdf',
+      certificate_file_path: 'mock_cert.pdf',
       status: attendeeForm.status,
       training_topic: selectedTraining.topic,
       training_date: selectedTraining.conducted_date || new Date().toISOString().split('T')[0]
@@ -626,21 +752,18 @@ export default function App() {
     const updatedCerts = [newCert, ...certificates];
     setCertificates(updatedCerts);
 
-    // Incrementar cuenta de asistentes
     const updatedTrainings = trainings.map(t => {
-      if (t.id === selectedTraining.id) {
-        return { ...t, attendee_count: (t.attendee_count || 0) + 1 };
-      }
+      if (t.id === selectedTraining.id) return { ...t, attendee_count: (t.attendee_count || 0) + 1 };
       return t;
     });
     setTrainings(updatedTrainings);
 
-    triggerLocalSave({ certificates: updatedCerts, trainings: updatedTrainings });
+    triggerSaveState({ certificates: updatedCerts, trainings: updatedTrainings });
 
     if (apiMode) {
       await fetch(`${BASE_API_URL}/trainings/${selectedTraining.id}/employees`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getRequestHeaders(),
         body: JSON.stringify(newCert)
       });
       window.location.reload();
@@ -650,17 +773,13 @@ export default function App() {
     setShowAttendeeModal(false);
   };
 
-  // 9. Registrar Accidente con Análisis 5 Porqués
   const handleCreateAccident = async (e) => {
     e.preventDefault();
+    if (userRole !== 'ADMIN') return;
     const newId = accidents.length + 1;
     
     const whyAnalysis = [
-      accidentForm.why1,
-      accidentForm.why2,
-      accidentForm.why3,
-      accidentForm.why4,
-      accidentForm.why5
+      accidentForm.why1, accidentForm.why2, accidentForm.why3, accidentForm.why4, accidentForm.why5
     ].filter(Boolean);
 
     const correctiveActions = [];
@@ -668,16 +787,7 @@ export default function App() {
       correctiveActions.push({ 
         measure: accidentForm.measure1, 
         due_date: accidentForm.measure1Date || '2026-06-30', 
-        status: 'PENDIENTE', 
-        date_closed: null 
-      });
-    }
-    if (accidentForm.measure2) {
-      correctiveActions.push({ 
-        measure: accidentForm.measure2, 
-        due_date: accidentForm.measure2Date || '2026-07-15', 
-        status: 'PENDIENTE', 
-        date_closed: null 
+        status: 'PENDIENTE', date_closed: null 
       });
     }
 
@@ -696,7 +806,6 @@ export default function App() {
     const updatedAccs = [newAcc, ...accidents];
     setAccidents(updatedAccs);
 
-    // Sumar tarea mensual en el Plan de Trabajo
     const eventMonth = new Date(accidentForm.date).getMonth() + 1;
     const newTask = {
       id: annualPlan.length + 1,
@@ -709,47 +818,44 @@ export default function App() {
     const updatedPlan = [...annualPlan, newTask];
     setAnnualPlan(updatedPlan);
 
-    triggerLocalSave({ accidents: updatedAccs, annualPlan: updatedPlan });
+    triggerSaveState({ accidents: updatedAccs, annualPlan: updatedPlan });
 
     if (apiMode) {
       await fetch(`${BASE_API_URL}/accidents`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getRequestHeaders(),
         body: JSON.stringify(newAcc)
       });
       window.location.reload();
     }
 
-    // Reset Form
     setAccidentForm({
       employee_name: '', date: '', accident_type: 'LEVE', description: '',
       why1: '', why2: '', why3: '', why4: '', why5: '',
       measure1: '', measure1Date: '', measure2: '', measure2Date: ''
     });
     setShowAccidentModal(false);
+    setSelectedAccident(newAcc);
   };
 
-  // Alternar el estado de las medidas de un accidente
   const toggleAccidentMeasure = async (accId, measureIndex) => {
+    if (userRole !== 'ADMIN') return;
     const updatedAccidents = accidents.map(a => {
       if (a.id === accId) {
         const nextMeasures = a.corrective_measures.map((m, idx) => {
           if (idx === measureIndex) {
             const nextStatus = m.status === 'COMPLETADA' ? 'PENDIENTE' : 'COMPLETADA';
             return {
-              ...m,
-              status: nextStatus,
+              ...m, status: nextStatus,
               date_closed: nextStatus === 'COMPLETADA' ? new Date().toISOString().split('T')[0] : null
             };
           }
           return m;
         });
         
-        // Si todas las medidas están completadas, cerramos el accidente
         const allClosed = nextMeasures.every(m => m.status === 'COMPLETADA');
         return {
-          ...a,
-          corrective_measures: nextMeasures,
+          ...a, corrective_measures: nextMeasures,
           status: allClosed ? 'CERRADO' : 'ABIERTO'
         };
       }
@@ -757,13 +863,13 @@ export default function App() {
     });
 
     setAccidents(updatedAccidents);
-    triggerLocalSave({ accidents: updatedAccidents });
+    triggerSaveState({ accidents: updatedAccidents });
 
     if (apiMode) {
       const target = updatedAccidents.find(a => a.id === accId);
       await fetch(`${BASE_API_URL}/accidents/${accId}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getRequestHeaders(),
         body: JSON.stringify({ 
           status: target.status, 
           corrective_measures: target.corrective_measures 
@@ -772,35 +878,146 @@ export default function App() {
     }
   };
 
-  // Imprimir/Visualizar Certificado
-  const triggerCertificatePrint = (cert) => {
-    setActiveCertificatePdf(cert);
-  };
+  if (currentScreen === 'welcome') {
+    return (
+      <div className="min-h-screen bg-[#020617] text-slate-100 flex flex-col items-center justify-center p-4 relative overflow-hidden font-sans">
+        {/* Background light meshes */}
+        <div className="absolute top-1/4 left-1/4 w-[40vw] h-[40vw] bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-[40vw] h-[40vw] bg-cyan-500/5 rounded-full blur-3xl pointer-events-none"></div>
 
+        <div className="w-full max-w-4xl flex flex-col items-center space-y-8 relative z-10 py-6">
+            
+            {/* Brand Header */}
+            <div className="text-center space-y-3">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border-2 border-emerald-500/30 mx-auto shadow-2xl shadow-emerald-500/10 animate-pulse">
+                    <Shield className="w-9 h-9" />
+                </div>
+                <div className="space-y-1">
+                    <h1 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight font-sans">CPHS Móvil</h1>
+                    <p className="text-xs md:text-sm text-slate-400 font-semibold uppercase tracking-wider font-sans">
+                        Gestor de Higiene, Seguridad y Cumplimiento Legal
+                    </p>
+                </div>
+            </div>
 
-  // ============================================================================
-  // AUXILIAR VIEWS / COMPONENT LAYOUTS
-  // ============================================================================
+            {/* Dual Path Selector Card */}
+            <div className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch">
+                
+                {/* PATH 1: PUBLIC WORKER */}
+                <div className="glass-card rounded-3xl p-6 md:p-8 flex flex-col justify-between space-y-6 bg-gradient-to-b from-[#0f172a]/80 to-[#070b19]/90 border border-slate-800/80 shadow-2xl">
+                    <div className="space-y-4">
+                        <div className="w-11 h-11 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400 border border-cyan-500/20">
+                            <Eye className="w-5.5 h-5.5" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg md:text-xl font-bold text-white font-sans">Consulta de Colaboradores</h3>
+                            <p className="text-xs md:text-sm text-slate-400 mt-1.5 leading-relaxed font-sans font-light">
+                                Acceso directo sin claves para todo el personal. Revise estadísticas de seguridad en tiempo real, actas legales firmadas, busque capacitaciones y previsualice su diploma de acreditación oficial.
+                            </p>
+                        </div>
+                    </div>
+                    <button 
+                        onClick={handlePublicIngress}
+                        className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 text-white font-extrabold text-xs md:text-sm shadow-lg shadow-emerald-500/10 hover:opacity-90 active:scale-[0.99] transition-all font-sans uppercase tracking-wider block"
+                    >
+                        Ver Panel de Cumplimiento
+                    </button>
+                </div>
+
+                {/* PATH 2: ADMIN LOGIN */}
+                <div className="glass-card rounded-3xl p-6 md:p-8 space-y-5 bg-gradient-to-b from-[#0f172a]/80 to-[#070b19]/90 border border-slate-800/80 shadow-2xl flex flex-col justify-between">
+                    <div className="space-y-4">
+                        <div className="w-11 h-11 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
+                            <Lock className="w-5.5 h-5.5" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg md:text-xl font-bold text-white font-sans">Administración CPHS</h3>
+                            <p className="text-xs text-slate-400 mt-1 font-sans font-light">
+                                Ingrese credenciales autorizadas del comité para habilitar edición, carga de evidencias de hallazgos y gestión del Trabajador del Mes.
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Error Banner */}
+                    {loginError && (
+                        <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold animate-fade-in flex items-center space-x-1.5 leading-snug">
+                            <AlertTriangle className="w-4.5 h-4.5 shrink-0 text-rose-500" />
+                            <span className="font-sans">{loginError}</span>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleAdminLogin} className="space-y-3 pt-1">
+                        <div className="space-y-1">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Usuario</label>
+                            <input 
+                                type="text" required placeholder="Ej: Admin"
+                                value={loginUser}
+                                onChange={(e) => setLoginUser(e.target.value)}
+                                className="w-full px-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800/85 text-slate-100 text-xs md:text-sm focus:outline-none focus:border-emerald-500/50"
+                            />
+                        </div>
+
+                        <div className="space-y-1 relative">
+                            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Contraseña</label>
+                            <input 
+                                type={showPassword ? "text" : "password"} required placeholder="••••••••"
+                                value={loginPassword}
+                                onChange={(e) => setLoginPassword(e.target.value)}
+                                className="w-full px-4 py-2.5 pr-10 rounded-xl bg-slate-950/80 border border-slate-800/85 text-slate-100 text-xs md:text-sm focus:outline-none focus:border-emerald-500/50"
+                            />
+                            <button 
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3.5 top-7 text-slate-500 hover:text-slate-300"
+                            >
+                                <Eye className="w-4 h-4" />
+                            </button>
+                        </div>
+
+                        <button 
+                            type="submit"
+                            disabled={loginLoading}
+                            className="w-full mt-3 py-3 rounded-2xl bg-slate-900 hover:bg-slate-850 text-emerald-400 font-extrabold text-xs md:text-sm border border-emerald-500/20 active:scale-[0.99] transition-all flex items-center justify-center space-x-2 font-sans uppercase tracking-wider"
+                        >
+                            {loginLoading ? (
+                                <div className="w-4.5 h-4.5 rounded-full border-2 border-emerald-500/20 border-t-emerald-400 animate-spin"></div>
+                            ) : (
+                                <>
+                                    <Shield className="w-4.5 h-4.5" />
+                                    <span>Acceso Restringido</span>
+                                </>
+                            )}
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+            
+            {/* Portal Footer Info */}
+            <p className="text-[10px] text-slate-500 font-bold font-sans tracking-wide">
+                Comité Paritario de Higiene y Seguridad • Planta Industrial 2026
+            </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-[#020617] text-slate-100 font-sans">
       
-      {/* -------------------------------------------------------------
-          SIDEBAR NAVIGATION
-          ------------------------------------------------------------- */}
-      <aside className="w-64 border-r border-slate-800 bg-[#070b19] flex flex-col justify-between shrink-0">
+      {/* DESKTOP SIDEBAR */}
+      <aside className="hidden md:flex w-64 border-r border-slate-800 bg-[#070b19] flex-col justify-between shrink-0">
         <div>
-          {/* Logo Brand */}
           <div className="p-6 border-b border-slate-800 flex items-center space-x-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 border border-emerald-500/20">
               <Shield className="w-6 h-6" />
             </div>
             <div>
               <h1 className="font-extrabold text-lg tracking-tight text-white">CPHS Gestor</h1>
-              <span className="text-xs font-semibold text-emerald-400 tracking-wider uppercase">Cumplimiento Legal</span>
+              <span className="text-[10px] font-bold text-emerald-400 tracking-wider uppercase block">Cumplimiento Legal</span>
             </div>
           </div>
 
-          {/* Menú de Navegación */}
           <nav className="p-4 space-y-1">
             {[
               { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
@@ -811,7 +1028,7 @@ export default function App() {
               { id: 'accidents', name: 'Investigación Acc.', icon: Activity },
               { id: 'cronogram', name: 'Plan Anual Gantt', icon: Clock }
             ].map(item => {
-              const Icon = item.icon;
+              const IconComp = item.icon;
               const active = activeTab === item.id;
               return (
                 <button
@@ -829,7 +1046,7 @@ export default function App() {
                       : 'text-slate-400 hover:text-white hover:bg-slate-800/40'
                   }`}
                 >
-                  <Icon className="w-5 h-5 shrink-0" />
+                  <IconComp className="w-5 h-5 shrink-0" />
                   <span>{item.name}</span>
                 </button>
               );
@@ -837,489 +1054,561 @@ export default function App() {
           </nav>
         </div>
 
-        {/* Estatus de la base de datos (Dual Mode display) */}
-        <div className="p-4 border-t border-slate-800 bg-[#040813]">
-          <div className="flex items-center space-x-3 p-3 rounded-lg bg-slate-900/60 border border-slate-800/80">
-            <div className={`w-2.5 h-2.5 rounded-full ${apiMode ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-pulse'}`}></div>
-            <div className="overflow-hidden">
-              <p className="text-xs font-bold text-slate-300 truncate">
-                {apiMode ? 'API Relacional Activa' : 'Local Sandbox Mode'}
-              </p>
-              <p className="text-[10px] text-slate-500">
-                {apiMode ? 'SQLite sync activo' : 'Guardado en LocalStorage'}
-              </p>
+        <div className="p-4 border-t border-slate-800 bg-[#040813] space-y-3">
+          <div className="space-y-1">
+            <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">ROL PREVISUALIZACIÓN</label>
+            <div className="flex bg-slate-900 border border-slate-800 p-0.5 rounded-lg">
+              <button 
+                onClick={() => setUserRole('ADMIN')}
+                className={`flex-1 text-[9px] font-bold py-1.5 rounded-md transition-all ${userRole === 'ADMIN' ? 'bg-emerald-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                Admin
+              </button>
+              <button 
+                onClick={() => setUserRole('PUBLIC')}
+                className={`flex-1 text-[9px] font-bold py-1.5 rounded-md transition-all ${userRole === 'PUBLIC' ? 'bg-[#334155] text-white' : 'text-slate-500 hover:text-slate-300'}`}
+              >
+                Público
+              </button>
             </div>
           </div>
+
+          <div className="flex items-center space-x-3 p-3 rounded-lg bg-slate-900/60 border border-slate-800/80">
+            <div className={`w-2.5 h-2.5 rounded-full ${apiMode ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500 animate-pulse'}`}></div>
+            <div className="overflow-hidden flex-1">
+              <p className="text-xs font-bold text-slate-300 truncate">{apiMode ? 'API Relacional Activa' : 'Modo Demo Local'}</p>
+              <p className="text-[10px] text-slate-500">Auto-guardado activo</p>
+            </div>
+          </div>
+
+          <button 
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center space-x-2 py-2 rounded-xl border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 text-rose-400 font-bold text-[10px] active:scale-[0.99] transition-all font-sans uppercase tracking-wider"
+          >
+            <LogOut className="w-3.5 h-3.5 shrink-0" />
+            <span>Cerrar Sesión</span>
+          </button>
         </div>
       </aside>
 
-      {/* -------------------------------------------------------------
-          MAIN CONTENT AREA
-          ------------------------------------------------------------- */}
-      <main className="flex-1 flex flex-col min-h-screen overflow-y-auto">
+      {/* MAIN CONTAINER */}
+      <main className="flex-1 flex flex-col min-h-screen pb-20 md:pb-8 overflow-y-auto">
         
-        {/* Top Navbar */}
-        <header className="h-16 border-b border-slate-800/80 bg-[#070b19]/60 backdrop-blur-md px-8 flex items-center justify-between shrink-0 sticky top-0 z-40">
-          <div>
-            <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Panel de Control General</span>
-            <h2 className="text-sm font-semibold text-slate-300">CPHS - Higiene, Seguridad y Prevención de Riesgos</h2>
-          </div>
-          <div className="flex items-center space-x-3">
-            <div className="text-right">
-              <h4 className="text-sm font-semibold text-white">Jaime - Administrador</h4>
-              <span className="text-[11px] font-medium text-emerald-400">Presidente CPHS</span>
+        {/* Header */}
+        <header className="h-16 border-b border-slate-800/80 bg-[#070b19]/60 backdrop-blur-md px-4 md:px-8 flex items-center justify-between shrink-0 sticky top-0 z-40">
+          <div className="flex items-center space-x-2.5 md:space-x-0">
+            <div className="flex md:hidden items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 mr-1">
+              <Shield className="w-5 h-5" />
             </div>
-            <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 font-bold">
+            <div className="overflow-hidden">
+              <span className="text-[9px] md:text-xs font-bold text-emerald-500 uppercase tracking-widest block font-sans">Prevención de Riesgos</span>
+              <h2 className="text-[10px] md:text-sm font-semibold text-slate-300 truncate">CPHS - Higiene, Seguridad y Prevención</h2>
+            </div>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            {/* Mobile Header Role Switcher */}
+            <div className="md:hidden flex bg-slate-950/80 border border-slate-800/80 p-0.5 rounded-lg text-[9px] font-bold">
+              <button 
+                onClick={() => setUserRole(userRole === 'ADMIN' ? 'PUBLIC' : 'ADMIN')}
+                className={`px-2 py-1 rounded transition-colors flex items-center space-x-1 ${
+                  userRole === 'ADMIN' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'
+                }`}
+              >
+                {userRole === 'ADMIN' ? <Shield className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+                <span>{userRole === 'ADMIN' ? 'Admin' : 'Público'}</span>
+              </button>
+            </div>
+
+            <div className="text-right hidden sm:block">
+              <h4 className="text-xs md:text-sm font-bold text-white leading-tight">Jaime Olivares</h4>
+              <span className={`text-[10px] font-bold uppercase tracking-wider ${userRole === 'ADMIN' ? 'text-emerald-400' : 'text-slate-500'}`}>
+                {userRole === 'ADMIN' ? 'Presidente CPHS (ADMIN)' : 'Trabajador (SOLO LECTURA)'}
+              </span>
+            </div>
+            <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 font-bold font-sans">
               J
             </div>
+            <button 
+              onClick={handleLogout}
+              title="Cerrar Sesión"
+              className="w-8 h-8 md:w-10 md:h-10 rounded-xl bg-slate-900 border border-slate-800 hover:bg-slate-850 hover:border-slate-700/80 flex items-center justify-center text-rose-400 transition-colors"
+            >
+              <LogOut className="w-4 h-4 md:w-5 md:h-5 shrink-0" />
+            </button>
           </div>
         </header>
 
-        {/* Dashboard / Sub-Views */}
-        <div className="p-8 flex-1">
+        {/* Dynamic Views */}
+        <div className="p-4 md:p-8 flex-1">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-96 space-y-4">
               <div className="w-12 h-12 rounded-full border-4 border-emerald-500/20 border-t-emerald-400 animate-spin"></div>
-              <p className="text-sm text-slate-400">Cargando base de datos y registros relacionales...</p>
+              <p className="text-sm text-slate-400 font-sans">Cargando base de datos...</p>
             </div>
           ) : (
             <>
-              {/* =========================================================
-                  TAB: DASHBOARD
-                  ========================================================= */}
+              {/* DASHBOARD VIEW */}
               {activeTab === 'dashboard' && (
-                <div className="space-y-8">
-                  {/* Title & Headline */}
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                      <h2 className="text-3xl font-extrabold text-white tracking-tight font-sans">Cuadro de Mando Integral</h2>
-                      <p className="text-slate-400 mt-1">Supervisión y control del cumplimiento del comité paritario en tiempo real.</p>
-                    </div>
-                    <div className="flex space-x-3">
-                      <button 
-                        onClick={() => setActiveTab('cronogram')}
-                        className="btn-gradient flex items-center space-x-2 text-xs"
-                      >
-                        <Clock className="w-4 h-4" />
-                        <span>Ver Plan de Trabajo Anual</span>
-                      </button>
+                <div className="space-y-6 md:space-y-8">
+                  
+                  {/* Trabajador del Mes */}
+                  <div className="glass-card rounded-3xl p-5 md:p-6 border-2 border-emerald-500/20 relative overflow-hidden bg-gradient-to-r from-emerald-950/15 via-[#0f172a]/60 to-[#070b19]/60">
+                    <div className="absolute right-0 top-0 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none"></div>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 relative z-10">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-cyan-500 p-0.5 shadow-xl shadow-emerald-500/10 flex-shrink-0">
+                          <div className="w-full h-full rounded-2xl bg-slate-950 flex items-center justify-center text-emerald-400 text-2xl font-bold font-sans">
+                            {workerOfMonth.avatar}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold tracking-wider uppercase">Reconocimiento CPHS</span>
+                            <span className="text-[10px] text-amber-400 font-extrabold uppercase flex items-center space-x-1">
+                              <Award className="w-3.5 h-3.5" />
+                              <span>Prevención Activa</span>
+                            </span>
+                          </div>
+                          <h3 className="text-lg md:text-xl font-extrabold text-white mt-1 leading-tight font-sans">{workerOfMonth.name}</h3>
+                          <p className="text-xs text-slate-400 font-semibold">{workerOfMonth.role}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex-1 md:max-w-md bg-slate-950/50 p-3.5 rounded-xl border border-slate-900">
+                        <p className="text-xs text-slate-300 italic leading-relaxed">
+                          "{workerOfMonth.reason}"
+                        </p>
+                      </div>
+
+                      {userRole === 'ADMIN' && (
+                        <button 
+                          onClick={() => {
+                            setWorkerForm({ name: workerOfMonth.name, role: workerOfMonth.role, reason: workerOfMonth.reason });
+                            setShowWorkerModal(true);
+                          }}
+                          className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-bold text-emerald-400 border border-emerald-500/20 transition-all flex items-center justify-center space-x-1.5 self-start md:self-auto shrink-0"
+                        >
+                          <Edit className="w-4 h-4" />
+                          <span>Actualizar</span>
+                        </button>
+                      )}
                     </div>
                   </div>
 
-                  {/* KPIs (Gauges & counters) */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {/* Gauge 1: Cumplimiento Mes */}
-                    <div className="glass-card rounded-2xl p-6 flex items-center justify-between">
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight font-sans">Cuadro de Mando Integral</h2>
+                      <p className="text-xs md:text-sm text-slate-400 mt-0.5 font-sans">Control preventivo e indicadores en tiempo real.</p>
+                    </div>
+                    <button 
+                      onClick={() => setActiveTab('cronogram')}
+                      className="btn-gradient flex items-center justify-center space-x-2 text-xs self-start md:self-auto"
+                    >
+                      <Clock className="w-4 h-4" />
+                      <span>Ver Plan de Trabajo Anual</span>
+                    </button>
+                  </div>
+
+                  {/* KPIs Grid */}
+                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                    <div className="glass-card rounded-2xl p-5 flex items-center justify-between col-span-2 lg:col-span-1">
                       <div>
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Cumplimiento del Mes</span>
-                        <span className="text-3xl font-extrabold text-white mt-2 block font-sans">{stats.complianceMonth}%</span>
-                        <span className="text-[11px] text-emerald-400 mt-1 block">Plan de Trabajo Mensual</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-sans">Cumplimiento Mes</span>
+                        <span className="text-2xl md:text-3xl font-extrabold text-white mt-1 block font-sans">{stats.complianceMonth}%</span>
                       </div>
-                      <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
+                      <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
                         <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                           <path className="text-slate-800" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                           <path className="text-emerald-400 transition-all duration-1000" strokeWidth="3.5" strokeDasharray={`${stats.complianceMonth}, 100`} strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                         </svg>
-                        <span className="absolute text-xs font-bold text-white">{stats.complianceMonth}%</span>
+                        <span className="absolute text-[10px] font-bold text-white font-sans">{stats.complianceMonth}%</span>
                       </div>
                     </div>
 
-                    {/* Gauge 2: Cumplimiento Año */}
-                    <div className="glass-card rounded-2xl p-6 flex items-center justify-between">
+                    <div className="glass-card rounded-2xl p-5 flex items-center justify-between col-span-2 lg:col-span-1">
                       <div>
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Cumplimiento del Año</span>
-                        <span className="text-3xl font-extrabold text-white mt-2 block font-sans">{stats.complianceYear}%</span>
-                        <span className="text-[11px] text-cyan-400 mt-1 block">Acumulado Legal 2026</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-sans">Cumplimiento Año</span>
+                        <span className="text-2xl md:text-3xl font-extrabold text-white mt-1 block font-sans">{stats.complianceYear}%</span>
                       </div>
-                      <div className="relative w-20 h-20 flex items-center justify-center shrink-0">
+                      <div className="relative w-16 h-16 flex items-center justify-center shrink-0">
                         <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                           <path className="text-slate-800" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                           <path className="text-cyan-400 transition-all duration-1000" strokeWidth="3.5" strokeDasharray={`${stats.complianceYear}, 100`} strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                         </svg>
-                        <span className="absolute text-xs font-bold text-white">{stats.complianceYear}%</span>
+                        <span className="absolute text-[10px] font-bold text-white font-sans">{stats.complianceYear}%</span>
                       </div>
                     </div>
 
-                    {/* Gauge 3: Compromisos */}
-                    <div className="glass-card rounded-2xl p-6 flex items-center justify-between">
+                    <div className="glass-card rounded-2xl p-5 flex items-center justify-between col-span-1">
                       <div>
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Compromisos Cerrados</span>
-                        <span className="text-3xl font-extrabold text-white mt-2 block font-sans">
-                          {stats.commitments.completed} <span className="text-lg text-slate-500 font-normal">/ {stats.commitments.total}</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-sans">Acuerdos</span>
+                        <span className="text-xl md:text-2xl font-extrabold text-white mt-1 block font-sans">
+                          {stats.commitments.completed} <span className="text-xs text-slate-500 font-normal">/ {stats.commitments.total}</span>
                         </span>
-                        <span className="text-[11px] text-slate-400 mt-1 block">Acuerdos de actas de reunión</span>
                       </div>
-                      <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
-                        <CheckCircle2 className="w-6 h-6" />
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                        <CheckCircle2 className="w-5.5 h-5.5" />
                       </div>
                     </div>
 
-                    {/* Gauge 4: Horas Hombre */}
-                    <div className="glass-card rounded-2xl p-6 flex items-center justify-between">
+                    <div className="glass-card rounded-2xl p-5 flex items-center justify-between col-span-1">
                       <div>
-                        <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Horas Hombre Formación</span>
-                        <span className="text-3xl font-extrabold text-white mt-2 block font-sans">{stats.totalHoursHomme} HH</span>
-                        <span className="text-[11px] text-cyan-400 mt-1 block">Horas acumuladas dictadas</span>
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-sans">Horas Hombre</span>
+                        <span className="text-xl md:text-2xl font-extrabold text-white mt-1 block font-sans">{stats.totalHoursHomme} HH</span>
                       </div>
-                      <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
-                        <GraduationCap className="w-6 h-6" />
+                      <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
+                        <GraduationCap className="w-5.5 h-5.5" />
                       </div>
                     </div>
                   </div>
 
-                  {/* Main Grid: Charts & Alerts */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    
-                    {/* Chart Container (SVG Custom beautiful bar charts) */}
-                    <div className="lg:col-span-2 glass-card rounded-3xl p-8 space-y-6">
+                  {/* Graphical summary */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 font-sans">
+                    <div className="lg:col-span-2 glass-card rounded-3xl p-6 md:p-8 space-y-6">
                       <div>
-                        <h3 className="text-lg font-bold text-white">Desglose de Gestión Mensual</h3>
-                        <p className="text-xs text-slate-400">Total de tareas programadas y ejecutadas por categoría (Reuniones, Inspecciones, Capacitaciones).</p>
+                        <h3 className="text-base md:text-lg font-bold text-white">Desglose de Gestión Mensual</h3>
+                        <p className="text-[11px] md:text-xs text-slate-400">Distribución de tareas reglamentarias del comité paritario.</p>
                       </div>
 
-                      {/* Custom SVG/HTML Bar chart */}
-                      <div className="space-y-6 pt-4">
+                      <div className="space-y-5 pt-2">
                         {[
-                          { category: 'Reuniones Mensuales', stats: stats.meetings, colorClass: 'bg-emerald-500', icon: Calendar },
-                          { category: 'Inspecciones de Terreno', stats: stats.inspections, colorClass: 'bg-cyan-500', icon: ClipboardList },
-                          { category: 'Capacitaciones Dictadas', stats: stats.trainings, colorClass: 'bg-yellow-500', icon: GraduationCap }
+                          { category: 'Reuniones Mensuales', stats: { completadas: meetings.filter(m => m.status === 'COMPLETADA').length, pendientes: meetings.filter(m => m.status === 'PENDIENTE').length }, colorClass: 'bg-emerald-500', totalCount: meetings.length },
+                          { category: 'Inspecciones de Terreno', stats: { completadas: inspections.filter(i => i.status === 'COMPLETADA').length, pendientes: inspections.filter(i => i.status === 'PENDIENTE').length }, colorClass: 'bg-cyan-500', totalCount: inspections.length },
+                          { category: 'Capacitaciones Dictadas', stats: { completadas: trainings.filter(t => t.status === 'COMPLETADA').length, pendientes: trainings.filter(t => t.status === 'PENDIENTE').length }, colorClass: 'bg-yellow-500', totalCount: trainings.length }
                         ].map((bar, i) => {
-                          const total = bar.stats.completadas + bar.stats.pendientes + bar.stats.atrasadas;
+                          const total = bar.totalCount;
                           const completedPercent = total > 0 ? (bar.stats.completadas / total) * 100 : 0;
                           const pendingPercent = total > 0 ? (bar.stats.pendientes / total) * 100 : 0;
-                          const delayedPercent = total > 0 ? (bar.stats.atrasadas / total) * 100 : 0;
-                          const Icon = bar.icon;
 
                           return (
-                            <div key={i} className="space-y-2">
-                              <div className="flex items-center justify-between text-sm">
-                                <div className="flex items-center space-x-2">
-                                  <div className="p-1.5 rounded-lg bg-slate-800 text-slate-300">
-                                    <Icon className="w-4 h-4" />
-                                  </div>
-                                  <span className="font-semibold text-white">{bar.category}</span>
-                                </div>
-                                <div className="flex items-center space-x-4 text-xs font-medium">
-                                  <span className="text-emerald-400">{bar.stats.completadas} Completadas</span>
-                                  <span className="text-slate-400">{bar.stats.pendientes} Pendientes</span>
-                                  {bar.stats.atrasadas > 0 && <span className="text-rose-500">{bar.stats.atrasadas} Atrasadas</span>}
+                            <div key={i} className="space-y-1.5">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-semibold text-slate-200">{bar.category}</span>
+                                <div className="flex items-center space-x-3 text-[10px] font-bold">
+                                  <span className="text-emerald-400">{bar.stats.completadas} Hechos</span>
+                                  <span className="text-slate-500">{bar.stats.pendientes} Pendientes</span>
                                 </div>
                               </div>
-                              
-                              {/* Stacked bar */}
-                              <div className="w-full h-3 rounded-full bg-slate-900 overflow-hidden flex border border-slate-800">
-                                <div className={`${bar.colorClass} h-full transition-all duration-500`} style={{ width: `${completedPercent}%` }} title="Completado"></div>
-                                <div className="bg-slate-700 h-full transition-all duration-500" style={{ width: `${pendingPercent}%` }} title="Pendiente"></div>
-                                <div className="bg-rose-500/80 h-full transition-all duration-500" style={{ width: `${delayedPercent}%` }} title="Atrasado"></div>
+                              <div className="w-full h-2.5 rounded-full bg-slate-950 overflow-hidden flex border border-slate-900">
+                                <div className={`${bar.colorClass} h-full transition-all duration-700`} style={{ width: `${completedPercent}%` }}></div>
+                                <div className="bg-slate-700 h-full transition-all duration-700" style={{ width: `${pendingPercent}%` }}></div>
                               </div>
                             </div>
                           );
                         })}
                       </div>
-
-                      {/* Chart Legend */}
-                      <div className="flex items-center space-x-6 text-xs pt-4 border-t border-slate-800">
-                        <div className="flex items-center space-x-2">
-                          <span className="w-3 h-3 rounded-sm bg-gradient-to-r from-emerald-500 to-cyan-500"></span>
-                          <span className="text-slate-400">Completadas</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span className="w-3 h-3 rounded-sm bg-slate-700"></span>
-                          <span className="text-slate-400">Pendientes</span>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <span className="w-3 h-3 rounded-sm bg-rose-500/80"></span>
-                          <span className="text-slate-400">Atrasadas / Fuera de Plazo</span>
-                        </div>
-                      </div>
                     </div>
 
-                    {/* Alertas Panel */}
-                    <div className="glass-card rounded-3xl p-8 space-y-6 flex flex-col">
+                    {/* Alerts Panel */}
+                    <div className="glass-card rounded-3xl p-6 md:p-8 space-y-5 flex flex-col">
                       <div className="flex items-center space-x-2">
-                        <AlertTriangle className="w-5 h-5 text-amber-500" />
-                        <h3 className="text-lg font-bold text-white">Alertas Tempranas</h3>
+                        <AlertTriangle className="w-4.5 h-4.5 text-amber-500" />
+                        <h3 className="text-sm md:text-base font-bold text-white">Alertas de Prevención</h3>
                       </div>
                       
-                      <div className="space-y-4 flex-1 overflow-y-auto max-h-80 pr-1">
+                      <div className="space-y-3.5 flex-1 overflow-y-auto max-h-72">
                         {alerts.criticalFindings.length === 0 && alerts.upcomingCommitments.length === 0 && (
-                          <div className="flex flex-col items-center justify-center h-full text-center space-y-2">
-                            <CheckCircle2 className="w-8 h-8 text-emerald-400" />
-                            <p className="text-sm font-medium text-slate-300">¡Cumplimiento impecable!</p>
-                            <p className="text-xs text-slate-500">No hay hallazgos críticos abiertos ni compromisos próximos a vencer.</p>
+                          <div className="flex flex-col items-center justify-center h-full text-center space-y-2 py-4">
+                            <CheckCircle2 className="w-7 h-7 text-emerald-400" />
+                            <p className="text-xs font-bold text-slate-350">¡Sin desviaciones críticas!</p>
+                            <p className="text-[10px] text-slate-500">Todo el programa paritario se encuentra auditado.</p>
                           </div>
                         )}
 
-                        {/* Critical Findings Alert */}
                         {alerts.criticalFindings.map(f => (
-                          <div key={f.id} className="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/20 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-[10px] font-bold text-rose-400">RIESGO CRÍTICO</span>
-                              <span className="text-[10px] text-slate-400 font-semibold">Límite: {f.due_date}</span>
+                          <div key={f.id} className="p-3.5 rounded-xl bg-rose-500/5 border border-rose-500/20 space-y-2">
+                            <div className="flex justify-between items-center text-[9px] font-bold">
+                              <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 font-sans">RIESGO CRÍTICO</span>
+                              <span className="text-slate-500 font-sans">Plazo: {f.due_date}</span>
                             </div>
-                            <p className="text-xs font-semibold text-slate-200 line-clamp-2">{f.description}</p>
-                            <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+                            <p className="text-xs font-semibold text-slate-200">{f.description}</p>
+                            <div className="flex items-center justify-between text-[9px] text-slate-500 pt-1 font-sans">
                               <span>Medida: {f.corrective_measure}</span>
-                              <button 
-                                onClick={() => handleCloseFinding(f.id)}
-                                className="text-rose-400 hover:text-rose-300 font-bold"
-                              >
-                                Marcar Solucionado
-                              </button>
+                              {userRole === 'ADMIN' ? (
+                                <button 
+                                  onClick={() => handleCloseFinding(f.id)}
+                                  className="text-rose-400 hover:text-rose-300 font-bold"
+                                >
+                                  Solucionar
+                                </button>
+                              ) : (
+                                <span className="text-slate-650 flex items-center space-x-0.5">
+                                  <Lock className="w-2.5 h-2.5" />
+                                  <span>Cerrar</span>
+                                </span>
+                              )}
                             </div>
                           </div>
                         ))}
 
-                        {/* Upcoming Commitments Alert */}
                         {alerts.upcomingCommitments.map(c => (
-                          <div key={c.id} className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-[10px] font-bold text-amber-400">COMPROMISO MENSUAL</span>
-                              <span className="text-[10px] text-slate-400 font-semibold">Límite: {c.due_date}</span>
+                          <div key={c.id} className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/10 space-y-2">
+                            <div className="flex justify-between items-center text-[9px] font-bold">
+                              <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">COMPROMISO</span>
+                              <span className="text-slate-500">Límite: {c.due_date}</span>
                             </div>
-                            <p className="text-xs font-medium text-slate-200 line-clamp-2">{c.description}</p>
-                            <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-                              <span>Responsable: {c.responsible_name}</span>
-                              <button 
-                                onClick={() => toggleCommitment(c.id)}
-                                className="text-emerald-400 hover:text-emerald-300 font-bold"
-                              >
-                                Completar
-                              </button>
+                            <p className="text-xs font-semibold text-slate-200">{c.description}</p>
+                            <div className="flex items-center justify-between text-[9px] text-slate-500 pt-1 font-sans">
+                              <span>Resp: {c.responsible_name}</span>
+                              {userRole === 'ADMIN' ? (
+                                <button 
+                                  onClick={() => toggleCommitment(c.id)}
+                                  className="text-emerald-400 hover:text-emerald-300 font-bold"
+                                >
+                                  Marcar Listo
+                                </button>
+                              ) : (
+                                <span className="text-slate-650 flex items-center space-x-0.5">
+                                  <Lock className="w-2.5 h-2.5" />
+                                  <span>Admin</span>
+                                </span>
+                              )}
                             </div>
                           </div>
                         ))}
                       </div>
                     </div>
                   </div>
+
                 </div>
               )}
 
-
-              {/* =========================================================
-                  TAB: MEETINGS (REUNIONES Y COMPROMISOS)
-                  ========================================================= */}
+              {/* REUNIONES VIEW */}
               {activeTab === 'meetings' && (
-                <div className="space-y-8">
-                  {/* Title Bar */}
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-3xl font-extrabold text-white tracking-tight">Reuniones y Actas del CPHS</h2>
-                      <p className="text-slate-400 mt-1">Calendario de reuniones ordinarias/extraordinarias y asignación de compromisos.</p>
+                      <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Reuniones Mensuales</h2>
+                      <p className="text-xs md:text-sm text-slate-400">Registro de sesiones ordinarias y extraordinarias paritarias.</p>
                     </div>
-                    <button 
-                      onClick={() => setShowMeetingModal(true)}
-                      className="btn-gradient flex items-center space-x-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Registrar Reunión Mensual</span>
-                    </button>
+                    {userRole === 'ADMIN' ? (
+                      <button 
+                        onClick={() => setShowMeetingModal(true)}
+                        className="btn-gradient flex items-center space-x-1 text-xs"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Registrar Sesión</span>
+                      </button>
+                    ) : (
+                      <span className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-500 flex items-center space-x-1">
+                        <Lock className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Lectura (Público)</span>
+                      </span>
+                    )}
                   </div>
 
-                  {/* Grid layout: Meetings List and Commitment Detail */}
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Responsive grid with Master-Detail logic */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
                     
-                    {/* Meetings List */}
-                    <div className="lg:col-span-1 glass-card rounded-3xl p-6 space-y-4">
-                      <h3 className="font-bold text-lg text-white">Cronograma de Sesiones</h3>
-                      <div className="space-y-3">
+                    {/* Left List */}
+                    <div className={`glass-card rounded-3xl p-5 space-y-4 ${selectedMeeting ? 'hidden lg:block' : 'block'}`}>
+                      <h3 className="font-bold text-sm text-slate-400 uppercase tracking-wider block">Historial de Sesiones</h3>
+                      
+                      <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
                         {meetings.map(m => {
                           const isSelected = selectedMeeting?.id === m.id;
                           return (
                             <div 
                               key={m.id}
                               onClick={() => setSelectedMeeting(m)}
-                              className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 border ${
+                              className={`p-3.5 rounded-xl cursor-pointer border transition-all duration-300 ${
                                 isSelected 
-                                  ? 'bg-emerald-500/10 border-emerald-500/40' 
-                                  : 'bg-slate-900/40 border-slate-800/80 hover:bg-slate-900/80 hover:border-slate-700/80'
+                                  ? 'bg-emerald-500/10 border-emerald-500/40 shadow-md shadow-emerald-500/5' 
+                                  : 'bg-slate-950/40 border-slate-900 hover:border-slate-800 hover:bg-slate-950/80'
                               }`}
                             >
-                              <div className="flex items-center justify-between text-xs mb-2">
-                                <span className={`px-2 py-0.5 rounded-full font-bold uppercase ${
-                                  m.type === 'ORDINARIA' ? 'bg-cyan-500/10 text-cyan-400' : 'bg-purple-500/10 text-purple-400'
+                              <div className="flex items-center justify-between text-[9px] font-bold mb-1.5">
+                                <span className={`px-1.5 py-0.5 rounded ${
+                                  m.type === 'ORDINARIA' ? 'bg-cyan-500/15 text-cyan-400' : 'bg-purple-500/15 text-purple-400'
                                 }`}>
                                   {m.type}
                                 </span>
-                                <span className="text-slate-400 font-semibold">{m.date}</span>
+                                <span className="text-slate-500 font-sans">{m.date}</span>
                               </div>
                               <h4 className="font-bold text-sm text-slate-100 line-clamp-1">{m.title}</h4>
-                              <p className="text-xs text-slate-400 mt-1 line-clamp-2">{m.description}</p>
-                              
-                              <div className="flex items-center justify-between text-[11px] pt-3 mt-3 border-t border-slate-800/60">
-                                <span className={`font-semibold flex items-center space-x-1 ${
-                                  m.status === 'COMPLETADA' ? 'text-emerald-400' : 'text-amber-400'
-                                }`}>
-                                  <Check className="w-3.5 h-3.5" />
-                                  <span>{m.status === 'COMPLETADA' ? 'Acta Firmada' : 'Pendiente Acta'}</span>
-                                </span>
-                                {m.act_file_path && (
-                                  <span className="text-emerald-400 hover:underline flex items-center space-x-1 font-bold">
-                                    <FileText className="w-3.5 h-3.5" />
-                                    <span>Ver PDF</span>
-                                  </span>
-                                )}
-                              </div>
                             </div>
                           );
                         })}
                       </div>
                     </div>
 
-                    {/* Commitments & Detail Section */}
-                    <div className="lg:col-span-2 glass-card rounded-3xl p-8 space-y-6">
+                    {/* Right Detail Pane */}
+                    <div className={`lg:col-span-2 glass-card rounded-3xl p-6 md:p-8 space-y-6 ${!selectedMeeting ? 'hidden lg:block' : 'block'}`}>
                       {selectedMeeting ? (
                         <>
-                          <div className="border-b border-slate-800 pb-6 space-y-4">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Reunión en detalle</span>
-                              <span className="text-xs text-slate-400 font-semibold">Fecha: {selectedMeeting.date}</span>
+                          <button 
+                            onClick={() => setSelectedMeeting(null)}
+                            className="lg:hidden flex items-center space-x-1.5 text-emerald-400 hover:text-emerald-300 font-bold text-xs mb-3"
+                          >
+                            <ArrowLeft className="w-4.5 h-4.5" />
+                            <span>Volver al listado</span>
+                          </button>
+
+                          <div className="border-b border-slate-800 pb-5 space-y-3">
+                            <div className="flex justify-between items-center text-[10px] font-bold">
+                              <span className="text-emerald-400 uppercase tracking-widest block font-sans">Sesión Seleccionada</span>
+                              <span className="text-slate-500">Fecha: {selectedMeeting.date}</span>
                             </div>
-                            <h3 className="text-2xl font-extrabold text-white">{selectedMeeting.title}</h3>
-                            <p className="text-sm text-slate-300 leading-relaxed">{selectedMeeting.description}</p>
+                            <h3 className="text-xl md:text-2xl font-extrabold text-white font-sans">{selectedMeeting.title}</h3>
+                            <p className="text-xs md:text-sm text-slate-300 leading-relaxed font-sans">{selectedMeeting.description}</p>
                             
-                            {/* Asistentes */}
                             {selectedMeeting.attendees && selectedMeeting.attendees.length > 0 && (
-                              <div className="flex flex-wrap gap-2 pt-2">
-                                <span className="text-xs text-slate-400 font-bold self-center mr-2">Participantes:</span>
-                                {selectedMeeting.attendees.map((attendee, idx) => (
-                                  <span key={idx} className="px-2.5 py-1 rounded-full bg-slate-800 text-xs text-slate-300 font-medium">
-                                    {attendee}
-                                  </span>
+                              <div className="flex flex-wrap gap-1.5 pt-1.5">
+                                <span className="text-[10px] text-slate-500 font-bold self-center mr-1">Asistieron:</span>
+                                {selectedMeeting.attendees.map((a, idx) => (
+                                  <span key={idx} className="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-400 font-semibold">{a}</span>
                                 ))}
                               </div>
                             )}
 
-                            {/* Acta File Info */}
-                            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-900/60 border border-slate-800">
+                            <div className="flex items-center justify-between p-3.5 rounded-xl bg-slate-950 border border-slate-900 mt-2">
                               <div className="flex items-center space-x-3">
-                                <div className="p-2 rounded-xl bg-slate-800 text-emerald-400">
+                                <div className="p-1.5 rounded-lg bg-slate-900 text-emerald-400">
                                   <FileText className="w-5 h-5" />
                                 </div>
                                 <div>
-                                  <p className="text-xs font-bold text-slate-300">Acta de Constitución o Acta Mensual</p>
-                                  <p className="text-[10px] text-slate-500">
-                                    {selectedMeeting.act_file_path ? 'Documento legal cargado y firmado en PDF.' : 'Falta cargar documento firmado.'}
-                                  </p>
+                                  <p className="text-xs font-bold text-slate-300">Acta / Evidencia cargada</p>
+                                  <p className="text-[9px] text-slate-500">Documento legal firmado del paritario.</p>
                                 </div>
                               </div>
-                              {selectedMeeting.act_file_path ? (
-                                <a 
-                                  href="#"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    alert(`Abriendo documento PDF: ${selectedMeeting.act_file_path} (Documento legal de respaldo del comité)`);
-                                  }}
-                                  className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-bold transition-colors border border-emerald-500/20"
-                                >
-                                  Descargar Acta PDF
-                                </a>
-                              ) : (
-                                <button
+                              {selectedMeeting.act_file_url || (selectedMeeting.act_file_path && selectedMeeting.act_file_path.startsWith('data:')) ? (
+                                <button 
                                   onClick={() => {
-                                    const updated = meetings.map(m => {
-                                      if (m.id === selectedMeeting.id) {
-                                        return { ...m, act_file_path: 'uploads/acta_mensual_cargada.pdf', status: 'COMPLETADA' };
-                                      }
-                                      return m;
-                                    });
-                                    setMeetings(updated);
-                                    setSelectedMeeting({ ...selectedMeeting, act_file_path: 'uploads/acta_mensual_cargada.pdf', status: 'COMPLETADA' });
-                                    triggerLocalSave({ meetings: updated });
+                                    const path = selectedMeeting.act_file_url || selectedMeeting.act_file_path;
+                                    if (path.startsWith('data:')) {
+                                      const win = window.open();
+                                      if (win) win.document.write(`<iframe src="${path}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`);
+                                    } else {
+                                      window.open(path, '_blank');
+                                    }
                                   }}
-                                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all"
+                                  className="px-2.5 py-1 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/20 transition-colors"
                                 >
-                                  Cargar Acta Firmada (PDF)
+                                  Ver Documento
                                 </button>
+                              ) : (
+                                userRole === 'ADMIN' ? (
+                                  <label className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold cursor-pointer transition-all">
+                                    Subir Acta
+                                    <input 
+                                      type="file" accept=".pdf,.png,.jpg,.jpeg" className="hidden"
+                                      onChange={async (e) => {
+                                        handleSafeFileBase64(e, async (base64) => {
+                                          if (apiMode) {
+                                            const fd = new FormData();
+                                            fd.append('acta', e.target.files[0]);
+                                            const res = await fetch(`${BASE_API_URL}/meetings/${selectedMeeting.id}/upload-act`, {
+                                              method: 'PUT',
+                                              headers: getMultipartHeaders(),
+                                              body: fd
+                                            });
+                                            const data = await res.json();
+                                            const updated = meetings.map(m => {
+                                              if (m.id === selectedMeeting.id) return { ...m, act_file_path: data.act_file_url, status: 'COMPLETADA' };
+                                              return m;
+                                            });
+                                            setMeetings(updated);
+                                            setSelectedMeeting({ ...selectedMeeting, act_file_url: data.act_file_url, status: 'COMPLETADA' });
+                                          } else {
+                                            const updated = meetings.map(m => {
+                                              if (m.id === selectedMeeting.id) return { ...m, act_file_path: base64 };
+                                              return m;
+                                            });
+                                            setMeetings(updated);
+                                            setSelectedMeeting({ ...selectedMeeting, act_file_path: base64 });
+                                            triggerSaveState({ meetings: updated });
+                                          }
+                                        }, () => {});
+                                      }}
+                                    />
+                                  </label>
+                                ) : (
+                                  <span className="text-[10px] text-slate-600 font-semibold flex items-center space-x-0.5">
+                                    <Lock className="w-2.5 h-2.5" />
+                                    <span>Sin Archivo</span>
+                                  </span>
+                                )
                               )}
                             </div>
                           </div>
 
-                          {/* Compromisos del CPHS */}
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                              <h4 className="font-bold text-white text-base">Compromisos y Acuerdos</h4>
-                              <button
-                                onClick={() => {
-                                  const desc = prompt("Ingrese descripción del compromiso:");
-                                  const resp = prompt("Ingrese nombre del responsable:");
-                                  const date = prompt("Ingrese fecha límite (YYYY-MM-DD):", new Date(Date.now() + 7*24*60*60*1000).toISOString().split('T')[0]);
-                                  if (desc && resp && date) {
-                                    const newCom = {
-                                      id: commitments.length + 1,
-                                      meeting_id: selectedMeeting.id,
-                                      description: desc,
-                                      responsible_name: resp,
-                                      due_date: date,
-                                      status: 'PENDIENTE',
-                                      closed_at: null
-                                    };
-                                    const updatedComs = [newCom, ...commitments];
-                                    setCommitments(updatedComs);
-                                    triggerLocalSave({ commitments: updatedComs });
-                                  }
-                                }}
-                                className="text-xs text-emerald-400 hover:underline flex items-center space-x-1 font-bold"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>Añadir Compromiso</span>
-                              </button>
+                              <h4 className="font-bold text-sm text-slate-200 uppercase tracking-wider block">Compromisos Asignados</h4>
+                              {userRole === 'ADMIN' && (
+                                <button 
+                                  onClick={() => {
+                                    const desc = prompt("Descripción del acuerdo:");
+                                    const resp = prompt("Responsable:");
+                                    if (desc && resp) {
+                                      const newCom = {
+                                        id: commitments.length + 1,
+                                        meeting_id: selectedMeeting.id,
+                                        description: desc,
+                                        responsible_name: resp,
+                                        due_date: new Date(Date.now() + 15*24*60*60*1000).toISOString().split('T')[0],
+                                        status: 'PENDIENTE',
+                                        closed_at: null
+                                      };
+                                      setCommitments([newCom, ...commitments]);
+                                      triggerSaveState({ commitments: [newCom, ...commitments] });
+
+                                      if (apiMode) {
+                                        fetch(`${BASE_API_URL}/meetings/${selectedMeeting.id}/commitments`, {
+                                          method: 'POST',
+                                          headers: getRequestHeaders(),
+                                          body: JSON.stringify(newCom)
+                                        });
+                                      }
+                                    }
+                                  }}
+                                  className="text-xs text-emerald-400 hover:underline flex items-center space-x-1 font-bold"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                  <span>Añadir Compromiso</span>
+                                </button>
+                              )}
                             </div>
 
-                            <div className="space-y-3">
+                            <div className="space-y-2 font-sans">
                               {commitments.filter(c => c.meeting_id === selectedMeeting.id).length === 0 ? (
-                                <p className="text-xs text-slate-500 italic">No hay compromisos asociados a esta sesión.</p>
+                                <p className="text-[11px] text-slate-500 italic">No se han registrado acuerdos en esta sesión.</p>
                               ) : (
-                                commitments
-                                  .filter(c => c.meeting_id === selectedMeeting.id)
-                                  .map(c => {
-                                    const isCompleted = c.status === 'COMPLETADO';
-                                    return (
-                                      <div 
-                                        key={c.id} 
-                                        className={`p-4 rounded-2xl border flex items-start justify-between gap-4 ${
-                                          isCompleted 
-                                            ? 'bg-emerald-500/5 border-emerald-500/10 opacity-70' 
-                                            : 'bg-slate-900/60 border-slate-800'
+                                commitments.filter(c => c.meeting_id === selectedMeeting.id).map(c => {
+                                  const isDone = c.status === 'COMPLETADO';
+                                  return (
+                                    <div key={c.id} className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-900 flex items-start space-x-3.5">
+                                      <button 
+                                        disabled={userRole !== 'ADMIN'}
+                                        onClick={() => toggleCommitment(c.id)}
+                                        className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-colors ${
+                                          isDone 
+                                            ? 'bg-emerald-500 border-emerald-400 text-white' 
+                                            : 'border-slate-700 disabled:opacity-40'
                                         }`}
                                       >
-                                        <div className="flex items-start space-x-3">
-                                          <button
-                                            onClick={() => toggleCommitment(c.id)}
-                                            className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors mt-0.5 ${
-                                              isCompleted 
-                                                ? 'bg-emerald-500 border-emerald-400 text-white' 
-                                                : 'border-slate-600 hover:border-emerald-500'
-                                            }`}
-                                          >
-                                            {isCompleted && <Check className="w-4 h-4" />}
-                                          </button>
-                                          <div>
-                                            <p className={`text-xs font-semibold ${isCompleted ? 'text-slate-400 line-through' : 'text-slate-200'}`}>
-                                              {c.description}
-                                            </p>
-                                            <div className="flex items-center space-x-4 text-[10px] text-slate-500 mt-1">
-                                              <span>Resp: <strong className="text-slate-400">{c.responsible_name}</strong></span>
-                                              <span>Límite: <strong className="text-slate-400">{c.due_date}</strong></span>
-                                              {isCompleted && <span className="text-emerald-400">Resuelto el {c.closed_at}</span>}
-                                            </div>
-                                          </div>
-                                        </div>
+                                        {isDone && <Check className="w-4 h-4" />}
+                                      </button>
+                                      <div className="flex-1">
+                                        <p className={`text-xs font-semibold ${isDone ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{c.description}</p>
+                                        <span className="text-[9px] text-slate-500 block mt-0.5">Encargado: {c.responsible_name} | Límite: {c.due_date}</span>
                                       </div>
-                                    );
-                                  })
+                                    </div>
+                                  );
+                                })
                               )}
                             </div>
                           </div>
                         </>
                       ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-                          <div className="w-16 h-16 rounded-2xl bg-slate-900/80 flex items-center justify-center text-slate-600 border border-slate-800">
-                            <Calendar className="w-8 h-8" />
+                        <div className="flex flex-col items-center justify-center h-64 text-center space-y-4">
+                          <div className="w-12 h-12 rounded-xl bg-slate-950 border border-slate-900 flex items-center justify-center text-slate-700">
+                            <Calendar className="w-6 h-6" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-slate-300">Seleccione una reunión</p>
-                            <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1">Haga clic en una reunión del menú lateral para ver el acta legal, asistentes y control de compromisos.</p>
+                            <p className="text-xs font-bold text-slate-300">Selecciona una Reunión</p>
+                            <p className="text-[10px] text-slate-500 max-w-xs mx-auto">Selecciona una sesión del historial lateral para ver las actas firmadas y dar seguimiento a los compromisos.</p>
                           </div>
                         </div>
                       )}
@@ -1329,189 +1618,187 @@ export default function App() {
                 </div>
               )}
 
-
-              {/* =========================================================
-                  TAB: INSPECTIONS (INSPECCIONES Y HALLAZGOS)
-                  ========================================================= */}
+              {/* INSPECCIONES VIEW */}
               {activeTab === 'inspections' && (
-                <div className="space-y-8">
-                  {/* Title Bar */}
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-3xl font-extrabold text-white tracking-tight">Inspecciones de Seguridad en Terreno</h2>
-                      <p className="text-slate-400 mt-1">Auditoría, planificación mensual de recorridos en planta y gestión correctiva de hallazgos.</p>
+                      <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Inspecciones en Terreno</h2>
+                      <p className="text-xs md:text-sm text-slate-400">Control de condiciones inseguras y hallazgos operacionales.</p>
                     </div>
-                    <button 
-                      onClick={() => setShowInspectionModal(true)}
-                      className="btn-gradient flex items-center space-x-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Programar Inspección</span>
-                    </button>
+                    {userRole === 'ADMIN' ? (
+                      <button 
+                        onClick={() => setShowInspectionModal(true)}
+                        className="btn-gradient flex items-center space-x-1 text-xs"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Nueva Inspección</span>
+                      </button>
+                    ) : (
+                      <span className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-500 flex items-center space-x-1">
+                        <Lock className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Lectura (Público)</span>
+                      </span>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
                     
-                    {/* Inspections list */}
-                    <div className="lg:col-span-1 glass-card rounded-3xl p-6 space-y-4">
-                      <h3 className="font-bold text-lg text-white">Inspecciones Programadas</h3>
-                      <div className="space-y-3">
+                    {/* Left List */}
+                    <div className={`glass-card rounded-3xl p-5 space-y-4 ${selectedInspection ? 'hidden lg:block' : 'block'}`}>
+                      <h3 className="font-bold text-sm text-slate-400 uppercase tracking-wider block font-sans">Recorridos Programados</h3>
+                      
+                      <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
                         {inspections.map(insp => {
                           const isSelected = selectedInspection?.id === insp.id;
-                          const countFindings = findings.filter(f => f.inspection_id === insp.id).length;
-                          const countOpen = findings.filter(f => f.inspection_id === insp.id && f.status === 'ABIERTO').length;
-
                           return (
-                            <div
+                            <div 
                               key={insp.id}
                               onClick={() => setSelectedInspection(insp)}
-                              className={`p-4 rounded-2xl cursor-pointer border transition-all duration-300 ${
+                              className={`p-3.5 rounded-xl cursor-pointer border transition-all duration-350 ${
                                 isSelected 
-                                  ? 'bg-emerald-500/10 border-emerald-500/40' 
-                                  : 'bg-slate-900/40 border-slate-800/80 hover:bg-slate-900/80 hover:border-slate-700/80'
+                                  ? 'bg-emerald-500/10 border-emerald-500/40 shadow-md' 
+                                  : 'bg-slate-950/40 border-slate-900 hover:border-slate-800'
                               }`}
                             >
-                              <div className="flex items-center justify-between text-xs mb-2">
-                                <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] uppercase ${
+                              <div className="flex items-center justify-between text-[9px] font-bold mb-1.5">
+                                <span className={`px-1.5 py-0.5 rounded ${
                                   insp.status === 'COMPLETADA' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
                                 }`}>
                                   {insp.status === 'COMPLETADA' ? 'Realizada' : 'Planificada'}
                                 </span>
-                                <span className="text-slate-400 font-semibold">{insp.planned_date}</span>
+                                <span className="text-slate-500 font-sans">{insp.planned_date}</span>
                               </div>
                               <h4 className="font-bold text-sm text-slate-100 line-clamp-1">{insp.title}</h4>
-                              <p className="text-[11px] text-slate-500 mt-1">Inspector: {insp.inspector_name}</p>
-
-                              <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-800/60 text-xs">
-                                <span className="text-slate-400">
-                                  Hallazgos: <strong className="text-white">{countFindings}</strong> ({countOpen} abiertos)
-                                </span>
-                                {insp.status === 'PENDIENTE' && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const updated = inspections.map(i => {
-                                        if (i.id === insp.id) return { ...i, status: 'COMPLETADA', conducted_date: new Date().toISOString().split('T')[0] };
-                                        return i;
-                                      });
-                                      setInspections(updated);
-                                      triggerLocalSave({ inspections: updated });
-                                    }}
-                                    className="text-emerald-400 font-bold hover:underline"
-                                  >
-                                    Marcar Ejecutada
-                                  </button>
-                                )}
-                              </div>
                             </div>
                           );
                         })}
                       </div>
                     </div>
 
-                    {/* Inspection findings and evidence */}
-                    <div className="lg:col-span-2 glass-card rounded-3xl p-8 space-y-6">
+                    {/* Right Detail Pane */}
+                    <div className={`lg:col-span-2 glass-card rounded-3xl p-6 md:p-8 space-y-6 ${!selectedInspection ? 'hidden lg:block' : 'block'}`}>
                       {selectedInspection ? (
                         <>
-                          <div className="border-b border-slate-800 pb-6 space-y-3">
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-emerald-400 font-bold tracking-wider uppercase">Informe de Auditoría en Terreno</span>
-                              <span className="text-slate-400 font-semibold">Ejecutada: {selectedInspection.conducted_date || 'En espera'}</span>
+                          <button 
+                            onClick={() => setSelectedInspection(null)}
+                            className="lg:hidden flex items-center space-x-1.5 text-emerald-400 hover:text-emerald-300 font-bold text-xs mb-3"
+                          >
+                            <ArrowLeft className="w-4.5 h-4.5" />
+                            <span>Volver al listado</span>
+                          </button>
+
+                          <div className="border-b border-slate-800 pb-5 space-y-3">
+                            <div className="flex justify-between items-center text-[10px] font-bold">
+                              <span className="text-emerald-400 uppercase tracking-widest block font-sans">Detalle de Recorrido</span>
+                              <span className="text-slate-500">Inspector: {selectedInspection.inspector_name}</span>
                             </div>
-                            <h3 className="text-2xl font-extrabold text-white">{selectedInspection.title}</h3>
-                            <p className="text-sm text-slate-400">
-                              Esta inspección tiene como objetivo auditar las condiciones operativas bajo normativas legales. Inspector asignado: <strong>{selectedInspection.inspector_name}</strong>.
-                            </p>
+                            <h3 className="text-xl md:text-2xl font-extrabold text-white font-sans">{selectedInspection.title}</h3>
+                            <div className="flex items-center space-x-4 text-xs text-slate-400 pt-1 font-sans">
+                              <span>Planificado: <strong className="text-slate-200">{selectedInspection.planned_date}</strong></span>
+                              {selectedInspection.conducted_date && (
+                                <span>Realizado: <strong className="text-emerald-400">{selectedInspection.conducted_date}</strong></span>
+                              )}
+                            </div>
                           </div>
 
-                          {/* Findings list */}
+                          {/* Findings Section */}
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                              <h4 className="font-bold text-white text-base">Desviaciones y Hallazgos Detectados</h4>
-                              <button
-                                onClick={() => setShowFindingModal(true)}
-                                className="text-xs text-emerald-400 hover:underline flex items-center space-x-1 font-bold"
-                              >
-                                <Plus className="w-3.5 h-3.5" />
-                                <span>Reportar Hallazgo</span>
-                              </button>
+                              <h4 className="font-bold text-sm text-slate-200 uppercase tracking-wider block">Desviaciones y Respaldos</h4>
+                              {userRole === 'ADMIN' && (
+                                <button 
+                                  onClick={() => setShowFindingModal(true)}
+                                  className="text-xs text-emerald-400 hover:underline flex items-center space-x-1 font-bold"
+                                >
+                                  <Plus className="w-3.5 h-3.5" />
+                                  <span>Añadir Hallazgo</span>
+                                </button>
+                              )}
                             </div>
 
-                            <div className="space-y-4">
+                            <div className="space-y-3">
                               {findings.filter(f => f.inspection_id === selectedInspection.id).length === 0 ? (
-                                <div className="text-center p-6 border border-dashed border-slate-800 rounded-2xl">
-                                  <Check className="w-6 h-6 text-emerald-400 mx-auto mb-2" />
-                                  <p className="text-xs text-slate-400 font-semibold">¡Inspección limpia de desviaciones!</p>
-                                  <p className="text-[10px] text-slate-600">No se detectaron hallazgos durante el recorrido.</p>
-                                </div>
+                                <p className="text-[11px] text-slate-500 italic">No se han registrado hallazgos en este recorrido.</p>
                               ) : (
-                                findings
-                                  .filter(f => f.inspection_id === selectedInspection.id)
-                                  .map(f => {
-                                    const isOpen = f.status === 'ABIERTO';
-                                    return (
-                                      <div 
-                                        key={f.id} 
-                                        className={`p-5 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-6 ${
-                                          isOpen 
-                                            ? 'bg-slate-900/60 border-slate-800' 
-                                            : 'bg-emerald-500/5 border-emerald-500/10 opacity-70'
-                                        }`}
-                                      >
-                                        <div className="space-y-2 flex-1">
-                                          <div className="flex items-center space-x-2">
-                                            <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] ${
-                                              f.risk_level === 'CRITICO' ? 'bg-red-500/20 text-red-400' :
-                                              f.risk_level === 'ALTO' ? 'bg-orange-500/20 text-orange-400' :
-                                              'bg-yellow-500/20 text-yellow-400'
-                                            }`}>
-                                              RIESGO {f.risk_level}
-                                            </span>
-                                            <span className="text-[10px] text-slate-500">Límite: {f.due_date}</span>
-                                          </div>
-                                          <h5 className="font-bold text-sm text-slate-100">{f.description}</h5>
-                                          <p className="text-xs text-slate-400">
-                                            <span className="font-semibold text-slate-300">Acción correctiva:</span> {f.corrective_measure}
-                                          </p>
-
-                                          {f.evidence_file_path && (
-                                            <div className="flex items-center space-x-2 text-[10px] text-slate-500 pt-1">
-                                              <Camera className="w-3.5 h-3.5 text-emerald-400" />
-                                              <span>Evidencia adjunta cargada</span>
-                                            </div>
-                                          )}
+                                findings.filter(f => f.inspection_id === selectedInspection.id).map(f => {
+                                  const isCrit = f.risk_level === 'CRITICO' || f.risk_level === 'ALTO';
+                                  const isClosed = f.status === 'CERRADO';
+                                  return (
+                                    <div key={f.id} className="p-4 rounded-xl bg-slate-950 border border-slate-900 space-y-3">
+                                      <div className="flex justify-between items-start">
+                                        <div className="space-y-1">
+                                          <span className={`px-2 py-0.5 rounded text-[8px] font-extrabold ${
+                                            f.risk_level === 'CRITICO' ? 'bg-rose-500/20 text-rose-400' :
+                                            f.risk_level === 'ALTO' ? 'bg-amber-500/20 text-amber-400' : 'bg-slate-800 text-slate-400'
+                                          }`}>
+                                            RIESGO {f.risk_level}
+                                          </span>
+                                          <h5 className="font-semibold text-xs text-slate-100 leading-snug mt-1.5">{f.description}</h5>
                                         </div>
-
-                                        <div className="flex items-center space-x-3 shrink-0">
-                                          {isOpen ? (
-                                            <button
-                                              onClick={() => handleCloseFinding(f.id)}
-                                              className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all shadow-md"
-                                            >
-                                              Marcar Cerrado
-                                            </button>
-                                          ) : (
-                                            <div className="flex items-center space-x-1.5 text-emerald-400 text-xs font-bold bg-emerald-500/10 px-3 py-1.5 rounded-lg border border-emerald-500/20">
-                                              <Check className="w-4 h-4" />
-                                              <span>Cerrado el {f.closed_at}</span>
-                                            </div>
-                                          )}
-                                        </div>
+                                        <span className={`px-2 py-0.5 rounded text-[8px] font-extrabold ${
+                                          isClosed ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400 animate-pulse'
+                                        }`}>
+                                          {f.status}
+                                        </span>
                                       </div>
-                                    );
-                                  })
+
+                                      {/* EVIDENCE PHOTO PREVIEW */}
+                                      {(f.evidence_file_path || f.evidence_file_url) && (
+                                        <div className="p-2 rounded-lg bg-slate-900/60 border border-slate-850 flex items-center space-x-3 max-w-sm">
+                                          <div className="w-12 h-12 rounded bg-slate-950 flex-shrink-0 overflow-hidden border border-slate-800 flex items-center justify-center">
+                                            {((f.evidence_file_path && f.evidence_file_path.startsWith('data:')) || f.evidence_file_url) ? (
+                                              <img src={f.evidence_file_url || f.evidence_file_path} className="w-full h-full object-cover" />
+                                            ) : (
+                                              <Camera className="w-5 h-5 text-emerald-400" />
+                                            )}
+                                          </div>
+                                          <div>
+                                            <p className="text-[10px] font-bold text-slate-355">Evidencia Adjunta</p>
+                                            <button 
+                                              onClick={() => {
+                                                const url = f.evidence_file_url || f.evidence_file_path;
+                                                if (url.startsWith('data:')) {
+                                                  const win = window.open();
+                                                  if (win) win.document.write(`<img src="${url}" style="max-width:100%; height:auto;" />`);
+                                                } else {
+                                                  window.open(url, '_blank');
+                                                }
+                                              }}
+                                              className="text-[9px] text-emerald-400 font-bold hover:underline"
+                                            >
+                                              Previsualizar Evidencia
+                                            </button>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      <div className="pt-2 border-t border-slate-900 flex justify-between items-center text-[10px] text-slate-500 font-sans">
+                                        <span>Medida: <strong className="text-slate-400">{f.corrective_measure}</strong></span>
+                                        {!isClosed && userRole === 'ADMIN' && (
+                                          <button 
+                                            onClick={() => handleCloseFinding(f.id)}
+                                            className="px-2 py-0.5 rounded bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-bold transition-all border border-emerald-500/20"
+                                          >
+                                            Solucionado
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })
                               )}
                             </div>
                           </div>
                         </>
                       ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-                          <div className="w-16 h-16 rounded-2xl bg-slate-900/80 flex items-center justify-center text-slate-600 border border-slate-800">
-                            <ClipboardList className="w-8 h-8" />
+                        <div className="flex flex-col items-center justify-center h-64 text-center space-y-4">
+                          <div className="w-12 h-12 rounded-xl bg-slate-950 border border-slate-900 flex items-center justify-center text-slate-700">
+                            <ClipboardList className="w-6 h-6" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-slate-300">Seleccione una Inspección</p>
-                            <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1">Visualice los hallazgos críticos detectados, nivele los riesgos y valide los planes de acción correctivos.</p>
+                            <p className="text-xs font-bold text-slate-300">Selecciona un Recorrido</p>
+                            <p className="text-[10px] text-slate-500 max-w-xs mx-auto">Selecciona una inspección del listado para auditar desviaciones críticas e ingresar respaldos visuales.</p>
                           </div>
                         </div>
                       )}
@@ -1521,181 +1808,155 @@ export default function App() {
                 </div>
               )}
 
-
-              {/* =========================================================
-                  TAB: TRAININGS (CAPACITACIONES Y MATRIZ)
-                  ========================================================= */}
+              {/* CAPACITACIONES VIEW */}
               {activeTab === 'trainings' && (
-                <div className="space-y-8">
-                  {/* Title Bar */}
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-3xl font-extrabold text-white tracking-tight">Matriz de Capacitación y Difusión</h2>
-                      <p className="text-slate-400 mt-1">Registros legales de formación de trabajadores, firmas de asistencia y acreditaciones.</p>
+                      <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight font-sans">Matriz de Capacitaciones</h2>
+                      <p className="text-xs md:text-sm text-slate-400">Control de competencias e inducciones preventivas.</p>
                     </div>
-                    <button 
-                      onClick={() => setShowTrainingModal(true)}
-                      className="btn-gradient flex items-center space-x-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Programar Capacitación</span>
-                    </button>
+                    {userRole === 'ADMIN' ? (
+                      <button 
+                        onClick={() => setShowTrainingModal(true)}
+                        className="btn-gradient flex items-center space-x-1 text-xs"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Programar Curso</span>
+                      </button>
+                    ) : (
+                      <span className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-500 flex items-center space-x-1">
+                        <Lock className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Lectura (Público)</span>
+                      </span>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  {/* Filtro de Categorías */}
+                  <div className="flex flex-wrap items-center gap-2 p-1 bg-slate-950/80 border border-slate-900 rounded-2xl max-w-lg">
+                    {[
+                      { id: 'ALL', name: 'Todos los Cursos' },
+                      { id: 'SEGURIDAD', name: 'Seguridad Industrial' },
+                      { id: 'SALUD', name: 'Salud y RCP' },
+                      { id: 'NORMATIVA', name: 'Normativa Legal' }
+                    ].map(cat => (
+                      <button
+                        key={cat.id}
+                        onClick={() => setTrainingCategoryFilter(cat.id)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                          trainingCategoryFilter === cat.id 
+                            ? 'bg-emerald-500 text-white shadow shadow-emerald-500/10' 
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
                     
-                    {/* Courses matrix list */}
-                    <div className="lg:col-span-1 glass-card rounded-3xl p-6 space-y-4">
-                      <h3 className="font-bold text-lg text-white">Matriz Mensual de Cursos</h3>
-                      <div className="space-y-3">
-                        {trainings.map(t => {
+                    {/* Left List */}
+                    <div className={`glass-card rounded-3xl p-5 space-y-4 ${selectedTraining ? 'hidden lg:block' : 'block'}`}>
+                      <h3 className="font-bold text-sm text-slate-400 uppercase tracking-wider block font-sans">Cursos Activos</h3>
+                      
+                      <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                        {categorizedTrainings.map(t => {
                           const isSelected = selectedTraining?.id === t.id;
                           return (
                             <div 
                               key={t.id}
                               onClick={() => setSelectedTraining(t)}
-                              className={`p-4 rounded-2xl cursor-pointer border transition-all duration-300 ${
+                              className={`p-3.5 rounded-xl cursor-pointer border transition-all duration-300 ${
                                 isSelected 
-                                  ? 'bg-emerald-500/10 border-emerald-500/40' 
-                                  : 'bg-slate-900/40 border-slate-800/80 hover:bg-slate-900/80 hover:border-slate-700/80'
+                                  ? 'bg-emerald-500/10 border-emerald-500/40 shadow-md' 
+                                  : 'bg-slate-950/40 border-slate-900 hover:border-slate-800'
                               }`}
                             >
-                              <div className="flex items-center justify-between text-xs mb-2">
-                                <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] uppercase ${
-                                  t.status === 'COMPLETADA' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
-                                }`}>
-                                  {t.status === 'COMPLETADA' ? 'Realizado' : 'Programado'}
+                              <div className="flex items-center justify-between text-[9px] font-bold mb-1.5">
+                                <span className="px-1.5 py-0.5 rounded bg-slate-900 text-emerald-450 uppercase">
+                                  {t.category || 'SEGURIDAD'}
                                 </span>
-                                <span className="text-slate-400 font-semibold">{t.planned_date}</span>
+                                <span className="text-slate-500 font-sans">{t.planned_date}</span>
                               </div>
                               <h4 className="font-bold text-sm text-slate-100 line-clamp-1">{t.topic}</h4>
-                              <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-800/60 text-xs text-slate-400">
-                                <span>Duración: <strong className="text-slate-300">{t.hours} hrs</strong></span>
-                                <span>Tenedores: <strong className="text-emerald-400">{t.attendee_count} emp</strong></span>
-                              </div>
                             </div>
                           );
                         })}
                       </div>
                     </div>
 
-                    {/* Course Detail & Attendees accreditation */}
-                    <div className="lg:col-span-2 glass-card rounded-3xl p-8 space-y-6">
+                    {/* Right Detail Pane */}
+                    <div className={`lg:col-span-2 glass-card rounded-3xl p-6 md:p-8 space-y-6 ${!selectedTraining ? 'hidden lg:block' : 'block'}`}>
                       {selectedTraining ? (
                         <>
-                          <div className="border-b border-slate-800 pb-6 space-y-3">
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-emerald-400 font-bold uppercase tracking-widest">Matriz de Competencias</span>
-                              <span className="text-slate-400 font-semibold">Ejecución: {selectedTraining.conducted_date || 'Pendiente'}</span>
+                          <button 
+                            onClick={() => setSelectedTraining(null)}
+                            className="lg:hidden flex items-center space-x-1.5 text-emerald-400 hover:text-emerald-300 font-bold text-xs mb-3"
+                          >
+                            <ArrowLeft className="w-4.5 h-4.5" />
+                            <span>Volver al listado</span>
+                          </button>
+
+                          <div className="border-b border-slate-800 pb-5 space-y-3">
+                            <div className="flex justify-between items-center text-[10px] font-bold">
+                              <span className="text-emerald-400 uppercase tracking-widest block font-sans">Acreditación Legal</span>
+                              <span className="text-slate-500">Duración: {selectedTraining.hours} Horas</span>
                             </div>
-                            <h3 className="text-2xl font-extrabold text-white">{selectedTraining.topic}</h3>
+                            <h3 className="text-xl md:text-2xl font-extrabold text-white font-sans">{selectedTraining.topic}</h3>
                             
-                            <div className="flex items-center space-x-6 text-xs text-slate-400 pt-2">
-                              <span>Duración Legal: <strong className="text-slate-200">{selectedTraining.hours} horas cronológicas</strong></span>
-                              <span>Total Acreditados: <strong className="text-slate-200">{selectedTraining.attendee_count} trabajadores</strong></span>
+                            <div className="flex flex-wrap gap-4 text-xs text-slate-400 pt-1 font-sans">
+                              <span>Categoría: <strong className="text-emerald-400 uppercase">{selectedTraining.category || 'SEGURIDAD'}</strong></span>
+                              <span>Realización: <strong className="text-slate-200">{selectedTraining.conducted_date || 'PENDIENTE'}</strong></span>
                             </div>
                           </div>
 
-                          {/* Attendance File Downloads */}
-                          {selectedTraining.status === 'COMPLETADA' ? (
-                            <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
-                              <div className="flex items-center space-x-3">
-                                <div className="p-2 rounded-xl bg-slate-800 text-emerald-400">
-                                  <FileText className="w-5 h-5" />
-                                </div>
-                                <div>
-                                  <p className="text-xs font-bold text-slate-300">Lista de Asistencia Firmada</p>
-                                  <p className="text-[10px] text-slate-500">Documento PDF cargado con firmas legales de respaldo.</p>
-                                </div>
-                              </div>
-                              <button
-                                onClick={() => alert("Abriendo lista de firmas digitalizada en PDF (Respaldo normativo CPHS).")}
-                                className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold transition-all border border-slate-700"
-                              >
-                                Ver Asistencia PDF
-                              </button>
-                            </div>
-                          ) : (
-                            <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
-                              <div className="flex items-center space-x-2 text-xs text-amber-500">
-                                <AlertTriangle className="w-5 h-5 shrink-0" />
-                                <span>Capacitación pendiente de realización. Debe registrar la asistencia real.</span>
-                              </div>
-                              <button
-                                onClick={() => {
-                                  const updated = trainings.map(t => {
-                                    if (t.id === selectedTraining.id) {
-                                      return {
-                                        ...t,
-                                        status: 'COMPLETADA',
-                                        conducted_date: new Date().toISOString().split('T')[0]
-                                      };
-                                    }
-                                    return t;
-                                  });
-                                  setTrainings(updated);
-                                  setSelectedTraining({ ...selectedTraining, status: 'COMPLETADA', conducted_date: new Date().toISOString().split('T')[0] });
-                                  triggerLocalSave({ trainings: updated });
-                                }}
-                                className="px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all"
-                              >
-                                Registrar Cierre y Firmas
-                              </button>
-                            </div>
-                          )}
-
-                          {/* Accredited Employees list */}
+                          {/* Trained Employees */}
                           <div className="space-y-4">
                             <div className="flex items-center justify-between">
-                              <h4 className="font-bold text-white text-base">Trabajadores Capacitados y Certificados</h4>
-                              {selectedTraining.status === 'COMPLETADA' && (
-                                <button
+                              <h4 className="font-bold text-sm text-slate-200 uppercase tracking-wider block">Trabajadores Certificados</h4>
+                              {userRole === 'ADMIN' && selectedTraining.status === 'COMPLETADA' && (
+                                <button 
                                   onClick={() => setShowAttendeeModal(true)}
                                   className="text-xs text-emerald-400 hover:underline flex items-center space-x-1 font-bold"
                                 >
                                   <Plus className="w-3.5 h-3.5" />
-                                  <span>Registrar Acreditación</span>
+                                  <span>Acreditar Trabajador</span>
                                 </button>
                               )}
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {certificates.filter(c => c.training_id === selectedTraining.id).length === 0 ? (
-                                <p className="text-xs text-slate-500 italic md:col-span-2">No se han registrado trabajadores acreditados para esta capacitación.</p>
+                                <p className="text-[11px] text-slate-500 italic col-span-full">No se han registrado acreditaciones.</p>
                               ) : (
-                                certificates
-                                  .filter(c => c.training_id === selectedTraining.id)
-                                  .map(c => (
-                                    <div key={c.id} className="p-4 rounded-2xl bg-slate-900/40 border border-slate-800/80 flex items-center justify-between">
-                                      <div className="space-y-1">
-                                        <h5 className="font-bold text-sm text-slate-100">{c.employee_name}</h5>
-                                        <p className="text-[10px] text-slate-500">RUN: {c.employee_run}</p>
-                                        <span className="inline-block px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-bold uppercase">
-                                          {c.status}
-                                        </span>
-                                      </div>
-                                      
-                                      <button
-                                        onClick={() => triggerCertificatePrint(c)}
-                                        className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-emerald-400 border border-slate-700/80 transition-all hover:scale-105"
-                                        title="Descargar Certificado Legal"
-                                      >
-                                        <Award className="w-4 h-4" />
-                                      </button>
+                                certificates.filter(c => c.training_id === selectedTraining.id).map(c => (
+                                  <div key={c.id} className="p-3.5 rounded-xl bg-slate-950 border border-slate-900 flex justify-between items-center">
+                                    <div>
+                                      <h5 className="font-bold text-xs text-slate-100">{c.employee_name}</h5>
+                                      <span className="text-[9px] text-slate-500 block font-sans">RUN: {c.employee_run}</span>
                                     </div>
-                                  ))
+                                    <button 
+                                      onClick={() => triggerCertificatePrint(c)}
+                                      className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 transition-all flex items-center space-x-1 font-bold text-[9px]"
+                                    >
+                                      <Eye className="w-4 h-4" />
+                                      <span className="hidden sm:inline">Previsualizar</span>
+                                    </button>
+                                  </div>
+                                ))
                               )}
                             </div>
                           </div>
                         </>
                       ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-                          <div className="w-16 h-16 rounded-2xl bg-slate-900/80 flex items-center justify-center text-slate-600 border border-slate-800">
-                            <GraduationCap className="w-8 h-8" />
+                        <div className="flex flex-col items-center justify-center h-64 text-center space-y-4">
+                          <div className="w-12 h-12 rounded-xl bg-slate-950 border border-slate-900 flex items-center justify-center text-slate-700">
+                            <GraduationCap className="w-6 h-6" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-slate-300">Seleccione una Capacitación</p>
-                            <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1">Gestione las inducciones mensuales de la planta, audite las horas acumuladas e imprima los certificados de competencias laborales.</p>
+                            <p className="text-xs font-bold text-slate-300">Selecciona un Curso</p>
+                            <p className="text-[10px] text-slate-500 max-w-xs mx-auto">Selecciona una capacitación para auditar horas hombre, categorizar temáticas e imprimir diplomas oficiales.</p>
                           </div>
                         </div>
                       )}
@@ -1705,70 +1966,60 @@ export default function App() {
                 </div>
               )}
 
-
-              {/* =========================================================
-                  TAB: CERTIFICADOS (BUSCADOR Y ACCREDITACIONES)
-                  ========================================================= */}
+              {/* CERTIFICADOS CENTRAL SEARCH */}
               {activeTab === 'certificates' && (
-                <div className="space-y-8">
-                  {/* Title Bar */}
+                <div className="space-y-6">
                   <div>
-                    <h2 className="text-3xl font-extrabold text-white tracking-tight">Repositorio Central de Certificados</h2>
-                    <p className="text-slate-400 mt-1">Buscador unificado por RUN o nombre de trabajador para constancias de acreditación.</p>
+                    <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight font-sans">Buscador Central de Certificados</h2>
+                    <p className="text-xs md:text-sm text-slate-400">Busca, previsualiza e imprime certificados legales de competencias y capacitaciones de tus trabajadores.</p>
                   </div>
 
-                  {/* Search Bar container */}
-                  <div className="glass-card rounded-2xl p-6 flex flex-col md:flex-row md:items-center gap-4">
+                  <div className="glass-card rounded-2xl p-5 flex flex-col md:flex-row md:items-center gap-4">
                     <div className="relative flex-1">
-                      <Search className="absolute left-4 top-3.5 text-slate-500 w-5 h-5" />
+                      <div className="absolute left-3 top-3 text-slate-500">
+                        <Search className="w-5 h-5" />
+                      </div>
                       <input 
                         type="text" 
-                        placeholder="Buscar por nombre, RUN de trabajador (ej: 12.345.678-9) o tema del curso..."
+                        placeholder="Buscar por Nombre, RUN (ej: 12.345.678-9) o Tema del curso..."
                         value={certSearchQuery}
                         onChange={(e) => setCertSearchQuery(e.target.value)}
-                        className="w-full pl-12 pr-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-500 text-sm focus:outline-none focus:border-emerald-500/50"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-650 text-sm focus:outline-none focus:border-emerald-500/30"
                       />
                     </div>
                   </div>
 
-                  {/* Certificates Results Grid */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {filteredCertificates.length === 0 ? (
-                      <div className="col-span-full text-center py-12 glass-card rounded-2xl space-y-2">
-                        <FileMinus className="w-8 h-8 text-slate-600 mx-auto" />
-                        <p className="text-sm font-semibold text-slate-300">No se encontraron certificados</p>
-                        <p className="text-xs text-slate-500">Pruebe ingresando otro parámetro de búsqueda en el filtro.</p>
+                      <div className="col-span-full text-center py-8 glass-card rounded-2xl">
+                        <p className="text-xs font-semibold text-slate-400">No se encontraron registros de acreditación.</p>
                       </div>
                     ) : (
                       filteredCertificates.map(c => (
-                        <div key={c.id} className="glass-card rounded-2xl p-6 space-y-4 hover:border-emerald-500/30 transition-all">
-                          <div className="flex items-start justify-between">
-                            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                        <div key={c.id} className="glass-card rounded-2xl p-5 space-y-3 hover:border-emerald-500/20 transition-all duration-300">
+                          <div className="flex justify-between items-start">
+                            <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
                               <Award className="w-5 h-5" />
                             </div>
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-[9px] font-bold uppercase">
-                              Vigente
-                            </span>
+                            <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 text-[8px] font-bold">VIGENTE</span>
                           </div>
 
-                          <div className="space-y-1">
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Trabajador</span>
-                            <h4 className="font-bold text-base text-white">{c.employee_name}</h4>
-                            <p className="text-xs text-slate-400">RUN: {c.employee_run}</p>
+                          <div className="space-y-0.5">
+                            <h4 className="font-bold text-sm text-slate-100 font-sans">{c.employee_name}</h4>
+                            <span className="text-[10px] text-slate-500 font-sans block">RUN: {c.employee_run}</span>
                           </div>
 
-                          <div className="pt-3 border-t border-slate-800/80 space-y-1">
-                            <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Curso Acreditado</span>
-                            <p className="text-xs font-semibold text-slate-200 line-clamp-1">{c.training_topic}</p>
-                            <p className="text-[10px] text-slate-500">Fecha: {c.training_date}</p>
+                          <div className="pt-2 border-t border-slate-900 space-y-1 font-sans">
+                            <p className="text-[11px] font-semibold text-slate-300 line-clamp-1">{c.training_topic}</p>
+                            <span className="text-[9px] text-slate-500 block">Acreditación: {c.training_date}</span>
                           </div>
 
-                          <button
+                          <button 
                             onClick={() => triggerCertificatePrint(c)}
-                            className="w-full mt-2 py-2 rounded-xl bg-slate-850 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 hover:border-slate-700 text-xs font-bold transition-all flex items-center justify-center space-x-2"
+                            className="w-full mt-1.5 py-2 rounded-xl bg-slate-950 border border-slate-900 text-xs font-bold text-slate-300 flex items-center justify-center space-x-1.5 hover:bg-slate-900"
                           >
-                            <Download className="w-4 h-4 text-emerald-400" />
-                            <span>Imprimir / Descargar Certificado</span>
+                            <Eye className="w-4 h-4 text-emerald-400" />
+                            <span>Previsualizar Certificado</span>
                           </button>
                         </div>
                       ))
@@ -1777,143 +2028,135 @@ export default function App() {
                 </div>
               )}
 
-
-              {/* =========================================================
-                  TAB: ACCIDENTS (INVESTIGACIÓN DE ACCIDENTES - 5 PORQUÉS)
-                  ========================================================= */}
+              {/* ACCIDENTES VIEW */}
               {activeTab === 'accidents' && (
-                <div className="space-y-8">
-                  {/* Title Bar */}
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-3xl font-extrabold text-white tracking-tight">Investigación de Accidentes e Incidentes</h2>
-                      <p className="text-slate-400 mt-1">Análisis de Causa Raíz mediante la metodología de los 5 Porqués y seguimiento correctivo.</p>
+                      <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">Investigación de Accidentes (5 Porqués)</h2>
+                      <p className="text-xs md:text-sm text-slate-400">Metodología oficial de causa raíz y planes correctivos legales.</p>
                     </div>
-                    <button 
-                      onClick={() => setShowAccidentModal(true)}
-                      className="btn-gradient flex items-center space-x-2"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Registrar Accidente</span>
-                    </button>
+                    {userRole === 'ADMIN' ? (
+                      <button 
+                        onClick={() => setShowAccidentModal(true)}
+                        className="btn-gradient flex items-center space-x-1 text-xs"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Registrar Accidente</span>
+                      </button>
+                    ) : (
+                      <span className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-500 flex items-center space-x-1">
+                        <Lock className="w-3.5 h-3.5 text-slate-600" />
+                        <span>Lectura (Público)</span>
+                      </span>
+                    )}
                   </div>
 
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8">
                     
-                    {/* Accidents list */}
-                    <div className="lg:col-span-1 glass-card rounded-3xl p-6 space-y-4">
-                      <h3 className="font-bold text-lg text-white">Registro de Incidentes</h3>
-                      <div className="space-y-3">
-                        {accidents.length === 0 ? (
-                          <p className="text-xs text-slate-500 italic">No hay accidentes registrados.</p>
-                        ) : (
-                          accidents.map(a => {
-                            const isSelected = selectedAccident?.id === a.id;
-                            const completedCount = a.corrective_measures.filter(m => m.status === 'COMPLETADA').length;
-                            const totalCount = a.corrective_measures.length;
+                    {/* Left List */}
+                    <div className={`glass-card rounded-3xl p-5 space-y-4 ${selectedAccident ? 'hidden lg:block' : 'block'}`}>
+                      <h3 className="font-bold text-sm text-slate-400 uppercase tracking-wider block font-sans">Registro de Sucesos</h3>
+                      
+                      <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                        {accidents.map(a => {
+                          const isSelected = selectedAccident?.id === a.id;
+                          const completedCount = a.corrective_measures.filter(m => m.status === 'COMPLETADA').length;
+                          const totalCount = a.corrective_measures.length;
 
-                            return (
-                              <div
-                                key={a.id}
-                                onClick={() => setSelectedAccident(a)}
-                                className={`p-4 rounded-2xl cursor-pointer border transition-all duration-300 ${
-                                  isSelected 
-                                    ? 'bg-emerald-500/10 border-emerald-500/40' 
-                                    : 'bg-slate-900/40 border-slate-800/80 hover:bg-slate-900/80 hover:border-slate-700/80'
-                                }`}
-                              >
-                                <div className="flex items-center justify-between text-xs mb-2">
-                                  <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] uppercase ${
-                                    a.accident_type === 'LEVE' ? 'bg-yellow-500/10 text-yellow-400' :
-                                    a.accident_type === 'GRAVE' ? 'bg-orange-500/10 text-orange-400' :
-                                    'bg-red-500/10 text-red-400'
-                                  }`}>
-                                    {a.accident_type}
-                                  </span>
-                                  <span className="text-slate-400 font-semibold">{a.date.split(' ')[0]}</span>
-                                </div>
-                                <h4 className="font-bold text-sm text-slate-100 line-clamp-1">{a.employee_name}</h4>
-                                <p className="text-xs text-slate-400 mt-1 line-clamp-2">{a.description}</p>
-                                
-                                <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-800/60 text-[11px] text-slate-500">
-                                  <span>Medidas: <strong className="text-white">{completedCount}/{totalCount}</strong></span>
-                                  <span className={`font-bold ${a.status === 'CERRADO' ? 'text-emerald-400' : 'text-amber-400'}`}>
-                                    {a.status}
-                                  </span>
-                                </div>
+                          return (
+                            <div 
+                              key={a.id}
+                              onClick={() => setSelectedAccident(a)}
+                              className={`p-3.5 rounded-xl cursor-pointer border transition-all duration-300 ${
+                                isSelected 
+                                  ? 'bg-emerald-500/10 border-emerald-500/40 shadow-md' 
+                                  : 'bg-slate-950/40 border-slate-900 hover:border-slate-800'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between text-[9px] font-bold mb-1.5">
+                                <span className={`px-1.5 py-0.5 rounded ${
+                                  a.accident_type === 'LEVE' ? 'bg-yellow-500/10 text-yellow-400' : 'bg-red-500/10 text-red-400'
+                                }`}>
+                                  {a.accident_type}
+                                </span>
+                                <span className="text-slate-500 font-sans">{a.date.split(' ')[0]}</span>
                               </div>
-                            );
-                          })
-                        )}
+                              <h4 className="font-bold text-sm text-slate-100 line-clamp-1">{a.employee_name}</h4>
+                              <span className="text-[10px] text-slate-500 font-semibold block mt-1">Planes: {completedCount}/{totalCount} resueltos</span>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 
-                    {/* Accident investigation details and 5 whys solver */}
-                    <div className="lg:col-span-2 glass-card rounded-3xl p-8 space-y-6">
+                    {/* Right Detail Pane */}
+                    <div className={`lg:col-span-2 glass-card rounded-3xl p-6 md:p-8 space-y-6 ${!selectedAccident ? 'hidden lg:block' : 'block'}`}>
                       {selectedAccident ? (
                         <>
-                          <div className="border-b border-slate-800 pb-6 space-y-3">
-                            <div className="flex items-center justify-between text-xs">
-                              <span className="text-emerald-400 font-bold uppercase tracking-widest">Informe de Causa Raíz</span>
-                              <span className="text-slate-400 font-semibold">Tipo: {selectedAccident.accident_type}</span>
+                          <button 
+                            onClick={() => setSelectedAccident(null)}
+                            className="lg:hidden flex items-center space-x-1.5 text-emerald-400 hover:text-emerald-300 font-bold text-xs mb-3"
+                          >
+                            <ArrowLeft className="w-4.5 h-4.5" />
+                            <span>Volver al listado</span>
+                          </button>
+
+                          <div className="border-b border-slate-800 pb-5 space-y-3">
+                            <div className="flex justify-between items-center text-[10px] font-bold font-sans">
+                              <span className="text-emerald-400 uppercase tracking-widest block">Investigación Oficial</span>
+                              <span className="text-slate-500">Fecha Incidente: {selectedAccident.date}</span>
                             </div>
-                            <h3 className="text-2xl font-extrabold text-white">Investigación: {selectedAccident.employee_name}</h3>
-                            <p className="text-sm text-slate-300 leading-relaxed bg-slate-950 p-4 rounded-xl border border-slate-850">
-                              <strong className="text-slate-400 block mb-1">Descripción del Suceso:</strong>
+                            <h3 className="text-xl md:text-2xl font-extrabold text-white font-sans">Investigación: {selectedAccident.employee_name}</h3>
+                            <p className="text-xs md:text-sm text-slate-300 leading-relaxed bg-slate-950 p-4 rounded-xl border border-slate-900 mt-2 font-sans">
+                              <strong className="text-slate-500 block mb-1">Descripción:</strong>
                               {selectedAccident.description}
                             </p>
                           </div>
 
-                          {/* 5 Whys chain display */}
+                          {/* 5 Whys Chain */}
                           <div className="space-y-4">
-                            <h4 className="font-bold text-white text-base flex items-center space-x-2">
-                              <TrendingUp className="w-5 h-5 text-emerald-400" />
-                              <span>Cadena de los 5 Porqués (Root Cause Analysis)</span>
-                            </h4>
-
-                            <div className="relative pl-6 border-l-2 border-emerald-500/25 space-y-4">
+                            <h4 className="font-bold text-xs text-white uppercase tracking-wider block font-sans">Cadena de los 5 Porqués (Causa Raíz)</h4>
+                            
+                            <div className="relative pl-5 border-l border-emerald-500/20 space-y-3.5">
                               {selectedAccident.root_cause_analysis.map((why, idx) => (
                                 <div key={idx} className="relative">
-                                  <span className="absolute -left-[31px] top-0 w-4 h-4 rounded-full bg-slate-950 border-2 border-emerald-400 flex items-center justify-center text-[9px] font-bold text-emerald-400">
-                                    {idx + 1}
+                                  <span className="absolute -left-[26px] top-0 w-3.5 h-3.5 rounded-full bg-slate-950 border border-emerald-400 flex items-center justify-center text-[8px] font-bold text-emerald-400">
+                                    {idx+1}
                                   </span>
-                                  <p className="text-xs font-semibold text-slate-200 pl-1">{why}</p>
+                                  <p className="text-xs font-semibold text-slate-200">{why}</p>
                                 </div>
                               ))}
                             </div>
                           </div>
 
-                          {/* Corrective measures with checking triggers */}
-                          <div className="space-y-4 pt-4 border-t border-slate-800">
-                            <h4 className="font-bold text-white text-base">Plan de Acción y Medidas Correctivas</h4>
+                          {/* Corrective measures list */}
+                          <div className="space-y-3 pt-3 border-t border-slate-905">
+                            <h4 className="font-bold text-xs text-white uppercase tracking-wider block font-sans">Medidas Correctivas Legales</h4>
                             
-                            <div className="space-y-3">
+                            <div className="space-y-2.5">
                               {selectedAccident.corrective_measures.map((m, idx) => {
                                 const isDone = m.status === 'COMPLETADA';
                                 return (
-                                  <div 
-                                    key={idx}
-                                    className={`p-4 rounded-2xl border flex items-center justify-between ${
-                                      isDone ? 'bg-emerald-500/5 border-emerald-500/15' : 'bg-slate-900/60 border-slate-800'
-                                    }`}
-                                  >
+                                  <div key={idx} className="p-3.5 rounded-xl bg-slate-950 border border-slate-900 flex justify-between items-center">
                                     <div className="flex items-center space-x-3">
-                                      <button
+                                      <button 
+                                        disabled={userRole !== 'ADMIN'}
                                         onClick={() => toggleAccidentMeasure(selectedAccident.id, idx)}
-                                        className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition-colors ${
-                                          isDone ? 'bg-emerald-500 border-emerald-400 text-white' : 'border-slate-600 hover:border-emerald-500'
+                                        className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 ${
+                                          isDone 
+                                            ? 'bg-emerald-500 border-emerald-400 text-white' 
+                                            : 'border-slate-700 disabled:opacity-40'
                                         }`}
                                       >
-                                        {isDone && <Check className="w-4 h-4" />}
+                                        {isDone && <Check className="w-3.5 h-3.5" />}
                                       </button>
                                       <div>
-                                        <p className={`text-xs font-semibold ${isDone ? 'text-slate-400 line-through' : 'text-slate-200'}`}>
-                                          {m.measure}
-                                        </p>
-                                        <span className="text-[10px] text-slate-500">Límite: {m.due_date} {m.date_closed && `| Completada el ${m.date_closed}`}</span>
+                                        <p className={`text-xs font-semibold ${isDone ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{m.measure}</p>
+                                        <span className="text-[9px] text-slate-500 block font-sans">Fecha límite: {m.due_date}</span>
                                       </div>
                                     </div>
-                                    <span className={`px-2 py-0.5 rounded-full font-bold text-[9px] ${
+                                    <span className={`px-2 py-0.5 rounded text-[8px] font-bold uppercase ${
                                       isDone ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
                                     }`}>
                                       {m.status}
@@ -1925,13 +2168,13 @@ export default function App() {
                           </div>
                         </>
                       ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-center space-y-4">
-                          <div className="w-16 h-16 rounded-2xl bg-slate-900/80 flex items-center justify-center text-slate-600 border border-slate-800">
-                            <Activity className="w-8 h-8" />
+                        <div className="flex flex-col items-center justify-center h-64 text-center space-y-4">
+                          <div className="w-12 h-12 rounded-xl bg-slate-950 border border-slate-900 flex items-center justify-center text-slate-700">
+                            <Activity className="w-6 h-6" />
                           </div>
                           <div>
-                            <p className="text-sm font-semibold text-slate-300">Seleccione una Investigación</p>
-                            <p className="text-xs text-slate-500 max-w-xs mx-auto mt-1">Analice los incidentes de la planta, encadene los 5 Porqués de la causa y supervise el cierre del plan correctivo legal.</p>
+                            <p className="text-xs font-bold text-slate-300">Selecciona una Investigación</p>
+                            <p className="text-[10px] text-slate-500 max-w-xs mx-auto">Selecciona una investigación para verificar los 5 Porqués y dar seguimiento a los planes correctivos.</p>
                           </div>
                         </div>
                       )}
@@ -1941,28 +2184,23 @@ export default function App() {
                 </div>
               )}
 
-
-              {/* =========================================================
-                  TAB: CRONOGRAM (PLAN ANUAL GANTT COMPLIANCE LIST)
-                  ========================================================= */}
+              {/* CRONOGRAMA ANUAL GANTT */}
               {activeTab === 'cronogram' && (
-                <div className="space-y-8">
-                  {/* Title Bar */}
+                <div className="space-y-6">
                   <div>
-                    <h2 className="text-3xl font-extrabold text-white tracking-tight">Cronograma de Trabajo Anual (Gantt)</h2>
-                    <p className="text-slate-400 mt-1">Obligaciones normativas y plan de trabajo anual para asegurar auditorías exitosas.</p>
+                    <h2 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight font-sans">Cronograma de Trabajo Anual (Gantt)</h2>
+                    <p className="text-xs md:text-sm text-slate-400">Planificador de hitos anuales obligatorios y auditorías legales del CPHS.</p>
                   </div>
 
-                  {/* Monthly interactive checklist (Visual Gantt style) */}
-                  <div className="glass-card rounded-3xl p-8 space-y-6">
+                  <div className="glass-card rounded-3xl p-5 md:p-8 space-y-6">
                     <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
-                      <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest">Plan Anual CPHS 2026</span>
-                      <span className="text-sm text-slate-300 font-semibold">
-                        Porcentaje de Cumplimiento Acumulado: <strong className="text-emerald-400">{stats.complianceYear}%</strong>
+                      <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest font-sans">Plan Anual 2026</span>
+                      <span className="text-xs md:text-sm text-slate-300 font-semibold font-sans">
+                        Cumplimiento Acumulado: <strong className="text-emerald-400 font-sans">{stats.complianceYear}%</strong>
                       </span>
                     </div>
 
-                    <div className="space-y-8 pt-4">
+                    <div className="space-y-6 pt-3">
                       {[
                         'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
                         'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
@@ -1973,8 +2211,8 @@ export default function App() {
                         if (monthTasks.length === 0) return null;
 
                         return (
-                          <div key={idx} className="space-y-3">
-                            <h4 className="text-sm font-bold text-white uppercase tracking-wider border-l-4 border-emerald-500 pl-3">
+                          <div key={idx} className="space-y-2.5">
+                            <h4 className="text-xs font-bold text-white uppercase tracking-wider border-l-2 border-emerald-500 pl-2">
                               {monthName}
                             </h4>
                             
@@ -1984,41 +2222,39 @@ export default function App() {
                                 return (
                                   <div 
                                     key={t.id}
-                                    className={`p-4 rounded-2xl border flex flex-col justify-between space-y-3 transition-all duration-300 ${
-                                      isDone 
-                                        ? 'bg-emerald-500/5 border-emerald-500/10' 
-                                        : 'bg-slate-900/60 border-slate-800/80 hover:border-slate-700'
+                                    className={`p-3.5 rounded-xl border flex flex-col justify-between space-y-3.5 transition-all duration-300 ${
+                                      isDone ? 'bg-emerald-500/5 border-emerald-500/10' : 'bg-slate-900/40 border-slate-800'
                                     }`}
                                   >
-                                    <div className="space-y-1">
-                                      <div className="flex items-center justify-between text-[9px] font-bold">
-                                        <span className={`px-2 py-0.5 rounded-full ${
-                                          t.type === 'REUNION' ? 'bg-cyan-500/15 text-cyan-400' :
-                                          t.type === 'INSPECCION' ? 'bg-yellow-500/15 text-yellow-400' :
-                                          'bg-purple-500/15 text-purple-400'
+                                    <div>
+                                      <div className="flex justify-between items-center text-[9px] font-bold mb-1">
+                                        <span className={`px-1.5 py-0.5 rounded ${
+                                          t.type === 'REUNION' ? 'bg-cyan-500/15 text-cyan-400' : 'bg-purple-500/15 text-purple-400'
                                         }`}>
                                           {t.type}
                                         </span>
-                                        <span className="text-slate-500">RESP: {t.responsible}</span>
+                                        <span className="text-slate-500 font-sans">RESP: {t.responsible}</span>
                                       </div>
                                       <h5 className="font-semibold text-xs text-slate-100 line-clamp-2">{t.task_name}</h5>
                                     </div>
 
-                                    <div className="flex items-center justify-between pt-2 border-t border-slate-800/60">
-                                      <span className={`text-[10px] font-bold ${isDone ? 'text-emerald-400' : 'text-slate-500'}`}>
-                                        {t.status}
-                                      </span>
-                                      
-                                      <button
-                                        onClick={() => toggleAnnualTask(t.id)}
-                                        className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                                          isDone 
-                                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
-                                            : 'bg-slate-850 text-slate-300 hover:bg-slate-800 border border-slate-800'
-                                        }`}
-                                      >
-                                        {isDone ? 'Marcar Pendiente' : 'Marcar Realizado'}
-                                      </button>
+                                    <div className="flex justify-between items-center pt-2 border-t border-slate-900">
+                                      <span className={`text-[9px] font-bold font-sans ${isDone ? 'text-emerald-400' : 'text-slate-500'}`}>{t.status}</span>
+                                      {userRole === 'ADMIN' ? (
+                                        <button 
+                                          onClick={() => toggleAnnualTask(t.id)}
+                                          className={`px-2.5 py-1 rounded text-[9px] font-bold border transition-colors ${
+                                            isDone ? 'bg-emerald-500/10 text-emerald-450 border-emerald-500/20' : 'bg-slate-800 text-slate-300 border-slate-700'
+                                          }`}
+                                        >
+                                          {isDone ? 'Pendiente' : 'Completado'}
+                                        </button>
+                                      ) : (
+                                        <span className="text-slate-650 flex items-center space-x-0.5 text-[9px] font-semibold">
+                                          <Lock className="w-2.5 h-2.5" />
+                                          <span>Solo Admin</span>
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                 );
@@ -2037,36 +2273,116 @@ export default function App() {
 
       </main>
 
-      {/* ============================================================================
-          MODALES Y DIALOGOS DE FORMULARIOS (Gorgous glassy designs)
-          ============================================================================ */}
+      {/* MOBILE BOTTOM NAVIGATION */}
+      <nav className="flex md:hidden fixed bottom-0 left-0 right-0 h-16 bg-[#070b19]/90 backdrop-blur-xl border-t border-slate-800/80 z-50 justify-around items-center px-1">
+        {[
+          { id: 'dashboard', label: 'Inicio', icon: LayoutDashboard },
+          { id: 'meetings', label: 'Sesiones', icon: Calendar },
+          { id: 'inspections', label: 'Auditorías', icon: ClipboardList },
+          { id: 'trainings', label: 'Cursos', icon: GraduationCap },
+          { id: 'certificates', label: 'Buscar', icon: Search },
+          { id: 'accidents', label: 'LOTO', icon: Activity },
+          { id: 'cronogram', label: 'Gantt', icon: Clock }
+        ].map(item => {
+          const IconComp = item.icon;
+          const active = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                setActiveTab(item.id);
+                setSelectedMeeting(null);
+                setSelectedInspection(null);
+                setSelectedTraining(null);
+                setSelectedAccident(null);
+              }}
+              className="flex flex-col items-center justify-center flex-1 h-full py-2"
+            >
+              <div className={`p-1 rounded-lg transition-colors ${active ? 'text-emerald-400 bg-emerald-500/10' : 'text-slate-500'}`}>
+                <IconComp className="w-5 h-5 shrink-0" />
+              </div>
+              <span className={`text-[9px] font-bold mt-0.5 ${active ? 'text-emerald-400' : 'text-slate-500'}`}>
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
+      </nav>
 
-      {/* Modal 1: Crear Reunión */}
-      {showMeetingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-          <div className="w-full max-w-lg glass-card rounded-3xl p-8 space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <h3 className="text-xl font-bold text-white">Registrar Reunión CPHS</h3>
-              <button onClick={() => setShowMeetingModal(false)} className="text-slate-500 hover:text-white">
+      {/* MODALS */}
+      
+      {/* Modal 0: Trabajador del Mes */}
+      {showWorkerModal && userRole === 'ADMIN' && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-slate-950/70 backdrop-blur-sm">
+          <div className="w-full bg-[#070b19] border-t md:border border-slate-800 rounded-t-3xl md:rounded-3xl p-6 md:p-8 space-y-5 max-h-[92vh] md:max-h-[90vh] md:max-w-lg overflow-y-auto pb-8 shadow-2xl">
+            <div className="block md:hidden w-12 h-1 bg-slate-800 rounded-full mx-auto mb-2"></div>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-bold text-white font-sans">Actualizar Trabajador del Mes</h3>
+              <button onClick={() => setShowWorkerModal(false)} className="text-slate-500 p-1">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
-            <form onSubmit={handleCreateMeeting} className="space-y-4">
+            <form onSubmit={handleSaveWorkerOfMonth} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Título de la Sesión</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Nombre Completo</label>
                 <input 
-                  type="text" required
-                  placeholder="Ej: Reunión Ordinaria Junio"
+                  type="text" required value={workerForm.name}
+                  onChange={(e) => setWorkerForm({ ...workerForm, name: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Puesto / Cargo</label>
+                <input 
+                  type="text" required value={workerForm.role}
+                  onChange={(e) => setWorkerForm({ ...workerForm, role: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Descripción del Mérito de Seguridad</label>
+                <textarea 
+                  rows="3" required value={workerForm.reason}
+                  onChange={(e) => setWorkerForm({ ...workerForm, reason: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                />
+              </div>
+              <div className="flex space-x-3 pt-3">
+                <button type="button" onClick={() => setShowWorkerModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                <button type="submit" className="btn-gradient flex-1">Guardar Cambios</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 1: Registrar Reunión */}
+      {showMeetingModal && userRole === 'ADMIN' && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-slate-950/70 backdrop-blur-sm">
+          <div className="w-full bg-[#070b19] border-t md:border border-slate-800 rounded-t-3xl md:rounded-3xl p-6 md:p-8 space-y-5 max-h-[92vh] md:max-h-[90vh] md:max-w-lg overflow-y-auto pb-8 shadow-2xl">
+            <div className="block md:hidden w-12 h-1 bg-slate-800 rounded-full mx-auto mb-2"></div>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-bold text-white font-sans">Registrar Reunión CPHS</h3>
+              <button onClick={() => setShowMeetingModal(false)} className="text-slate-500 p-1">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateMeeting} className="space-y-4 font-sans">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Título de la Sesión</label>
+                <input 
+                  type="text" required placeholder="Ej: Reunión Ordinaria Junio"
                   value={meetingForm.title}
                   onChange={(e) => setMeetingForm({ ...meetingForm, title: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none focus:border-emerald-500/50"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Tipo</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tipo</label>
                   <select 
                     value={meetingForm.type}
                     onChange={(e) => setMeetingForm({ ...meetingForm, type: e.target.value })}
@@ -2077,10 +2393,9 @@ export default function App() {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Fecha</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Fecha</label>
                   <input 
-                    type="date" required
-                    value={meetingForm.date}
+                    type="date" required value={meetingForm.date}
                     onChange={(e) => setMeetingForm({ ...meetingForm, date: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                   />
@@ -2088,72 +2403,77 @@ export default function App() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Temas a Tratar / Tabla</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tabla / Puntos a Tratar</label>
                 <textarea 
-                  rows="3" placeholder="Puntos a analizar en la reunión legal..."
+                  rows="3" placeholder="Puntos a auditar..."
                   value={meetingForm.description}
                   onChange={(e) => setMeetingForm({ ...meetingForm, description: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Asistentes (separados por coma)</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Asistentes (separados por coma)</label>
                 <input 
-                  type="text" placeholder="Ej: Juan Pérez, María Gómez, Pedro Silva"
+                  type="text" placeholder="Ej: Juan Pérez, María Gómez"
                   value={meetingForm.attendees}
                   onChange={(e) => setMeetingForm({ ...meetingForm, attendees: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                 />
               </div>
 
-              <div className="flex space-x-3 pt-4 border-t border-slate-800">
-                <button type="button" onClick={() => setShowMeetingModal(false)} className="btn-secondary flex-1">
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-gradient flex-1">
-                  Crear y Cerrar
-                </button>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Adjuntar Evidencia del Acta (PDF/Imagen - Max 5MB)</label>
+                <input 
+                  type="file" accept=".pdf,.png,.jpg,.jpeg"
+                  onChange={(e) => handleSafeFileBase64(e, setMeetingFileBase64, setMeetingRawFile)}
+                  className="w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-900 file:text-emerald-400 hover:file:bg-slate-800"
+                />
+              </div>
+
+              <div className="flex space-x-3 pt-3">
+                <button type="button" onClick={() => setShowMeetingModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                <button type="submit" className="btn-gradient flex-1">Crear Reunión</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Modal 2: Crear Inspección */}
-      {showInspectionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-          <div className="w-full max-w-lg glass-card rounded-3xl p-8 space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <h3 className="text-xl font-bold text-white">Programar Inspección de Terreno</h3>
-              <button onClick={() => setShowInspectionModal(false)} className="text-slate-500 hover:text-white">
+      {/* Modal 2: Programar Inspección */}
+      {showInspectionModal && userRole === 'ADMIN' && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-slate-950/70 backdrop-blur-sm">
+          <div className="w-full bg-[#070b19] border-t md:border border-slate-800 rounded-t-3xl md:rounded-3xl p-6 md:p-8 space-y-5 max-h-[92vh] md:max-h-[90vh] md:max-w-lg overflow-y-auto pb-8 shadow-2xl">
+            <div className="block md:hidden w-12 h-1 bg-slate-800 rounded-full mx-auto mb-2"></div>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-bold text-white font-sans">Programar Inspección de Terreno</h3>
+              <button onClick={() => setShowInspectionModal(false)} className="text-slate-500 p-1">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <form onSubmit={handleCreateInspection} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Nombre de la Inspección</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Nombre de la Inspección</label>
                 <input 
                   type="text" required placeholder="Ej: Inspección Mensual de EPP - Talleres"
                   value={inspectionForm.title}
                   onChange={(e) => setInspectionForm({ ...inspectionForm, title: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none focus:border-emerald-500/50"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Fecha Planificada</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Fecha Planificada</label>
                   <input 
-                    type="date" required
-                    value={inspectionForm.planned_date}
+                    type="date" required value={inspectionForm.planned_date}
                     onChange={(e) => setInspectionForm({ ...inspectionForm, planned_date: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Inspector Asignado</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Inspector Asignado</label>
                   <input 
                     type="text" required placeholder="Ej: Pedro Silva"
                     value={inspectionForm.inspector_name}
@@ -2164,23 +2484,17 @@ export default function App() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Fecha Realización (opcional)</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Fecha Realización (Opcional)</label>
                 <input 
-                  type="date"
-                  value={inspectionForm.conducted_date}
+                  type="date" value={inspectionForm.conducted_date}
                   onChange={(e) => setInspectionForm({ ...inspectionForm, conducted_date: e.target.value })}
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                 />
-                <span className="text-[10px] text-slate-500 mt-1 block">Deje vacío si desea dejarla como planificada para el futuro.</span>
               </div>
 
-              <div className="flex space-x-3 pt-4 border-t border-slate-800">
-                <button type="button" onClick={() => setShowInspectionModal(false)} className="btn-secondary flex-1">
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-gradient flex-1">
-                  Programar Inspección
-                </button>
+              <div className="flex space-x-3 pt-3">
+                <button type="button" onClick={() => setShowInspectionModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                <button type="submit" className="btn-gradient flex-1">Programar</button>
               </div>
             </form>
           </div>
@@ -2188,30 +2502,31 @@ export default function App() {
       )}
 
       {/* Modal 3: Reportar Hallazgo */}
-      {showFindingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-          <div className="w-full max-w-lg glass-card rounded-3xl p-8 space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <h3 className="text-xl font-bold text-white">Reportar Desviación / Hallazgo</h3>
-              <button onClick={() => setShowFindingModal(false)} className="text-slate-500 hover:text-white">
+      {showFindingModal && userRole === 'ADMIN' && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-slate-950/70 backdrop-blur-sm">
+          <div className="w-full bg-[#070b19] border-t md:border border-slate-800 rounded-t-3xl md:rounded-3xl p-6 md:p-8 space-y-5 max-h-[92vh] md:max-h-[90vh] md:max-w-lg overflow-y-auto pb-8 shadow-2xl">
+            <div className="block md:hidden w-12 h-1 bg-slate-800 rounded-full mx-auto mb-2"></div>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-bold text-white font-sans">Reportar Desviación / Hallazgo</h3>
+              <button onClick={() => setShowFindingModal(false)} className="text-slate-500 p-1">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <form onSubmit={handleCreateFinding} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Descripción del Hallazgo</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Descripción del Hallazgo</label>
                 <textarea 
-                  rows="3" required placeholder="Describa la condición insegura o desviación observada..."
+                  rows="3" required placeholder="Describa la condición insegura..."
                   value={findingForm.description}
                   onChange={(e) => setFindingForm({ ...findingForm, description: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Nivel de Riesgo</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Riesgo</label>
                   <select 
                     value={findingForm.risk_level}
                     onChange={(e) => setFindingForm({ ...findingForm, risk_level: e.target.value })}
@@ -2224,10 +2539,9 @@ export default function App() {
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Fecha Límite Corrección</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Límite de Cierre</label>
                   <input 
-                    type="date" required
-                    value={findingForm.due_date}
+                    type="date" required value={findingForm.due_date}
                     onChange={(e) => setFindingForm({ ...findingForm, due_date: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                   />
@@ -2235,134 +2549,142 @@ export default function App() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Medida Correctiva Asignada</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Medida Correctiva Asignada</label>
                 <input 
-                  type="text" required placeholder="Ej: Adquirir resguardo de seguridad o recargar extintor"
+                  type="text" required placeholder="Ej: Adquirir e instalar resguardo físico"
                   value={findingForm.corrective_measure}
                   onChange={(e) => setFindingForm({ ...findingForm, corrective_measure: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                 />
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between text-xs">
-                <span className="text-slate-400">¿Adjuntar evidencia fotográfica?</span>
-                <span className="text-emerald-400 font-bold">Autogenerada (*.jpg)</span>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Adjuntar Evidencia Fotográfica (JPG/PNG - Max 5MB)</label>
+                <input 
+                  type="file" accept=".png,.jpg,.jpeg,.webp"
+                  onChange={(e) => handleSafeFileBase64(e, setFindingFileBase64, setFindingRawFile)}
+                  className="w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-slate-900 file:text-emerald-400 hover:file:bg-slate-800"
+                />
               </div>
 
-              <div className="flex space-x-3 pt-4 border-t border-slate-800">
-                <button type="button" onClick={() => setShowFindingModal(false)} className="btn-secondary flex-1">
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-gradient flex-1">
-                  Reportar Desviación
-                </button>
+              <div className="flex space-x-3 pt-3">
+                <button type="button" onClick={() => setShowFindingModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                <button type="submit" className="btn-gradient flex-1">Reportar Desviación</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Modal 4: Crear Capacitación */}
-      {showTrainingModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-          <div className="w-full max-w-lg glass-card rounded-3xl p-8 space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <h3 className="text-xl font-bold text-white">Programar Capacitación / Charla</h3>
-              <button onClick={() => setShowTrainingModal(false)} className="text-slate-500 hover:text-white">
+      {/* Modal 4: Programar Capacitación */}
+      {showTrainingModal && userRole === 'ADMIN' && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-slate-950/70 backdrop-blur-sm">
+          <div className="w-full bg-[#070b19] border-t md:border border-slate-800 rounded-t-3xl md:rounded-3xl p-6 md:p-8 space-y-5 max-h-[92vh] md:max-h-[90vh] md:max-w-lg overflow-y-auto pb-8 shadow-2xl">
+            <div className="block md:hidden w-12 h-1 bg-slate-800 rounded-full mx-auto mb-2"></div>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-bold text-white font-sans">Programar Capacitación</h3>
+              <button onClick={() => setShowTrainingModal(false)} className="text-slate-500 p-1">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <form onSubmit={handleCreateTraining} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Tema / Título del Curso</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tema o Título del Curso</label>
                 <input 
-                  type="text" required placeholder="Ej: Ergonomía e Higiene Postural en Planta"
+                  type="text" required placeholder="Ej: Uso y Manejo de Extintores Portátiles"
                   value={trainingForm.topic}
                   onChange={(e) => setTrainingForm({ ...trainingForm, topic: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-600 text-sm focus:outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Fecha Programación</label>
-                  <input 
-                    type="date" required
-                    value={trainingForm.planned_date}
-                    onChange={(e) => setTrainingForm({ ...trainingForm, planned_date: e.target.value })}
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Categoría de Curso</label>
+                  <select 
+                    value={trainingForm.category}
+                    onChange={(e) => setTrainingForm({ ...trainingForm, category: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
-                  />
+                  >
+                    <option value="SEGURIDAD">Seguridad Industrial</option>
+                    <option value="SALUD">Salud y RCP</option>
+                    <option value="NORMATIVA">Legislación Legal</option>
+                  </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Horas Formativas</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Horas Formativas</label>
                   <input 
-                    type="number" required min="1" max="40"
-                    value={trainingForm.hours}
+                    type="number" required min="1" max="40" value={trainingForm.hours}
                     onChange={(e) => setTrainingForm({ ...trainingForm, hours: Number(e.target.value) })}
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Fecha Realización (opcional)</label>
-                <input 
-                  type="date"
-                  value={trainingForm.conducted_date}
-                  onChange={(e) => setTrainingForm({ ...trainingForm, conducted_date: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
-                />
-                <span className="text-[10px] text-slate-500 mt-1 block">Deje vacío si desea dejarla como planificada para el futuro.</span>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Fecha Programada</label>
+                  <input 
+                    type="date" required value={trainingForm.planned_date}
+                    onChange={(e) => setTrainingForm({ ...trainingForm, planned_date: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Fecha Realización (Opcional)</label>
+                  <input 
+                    type="date" value={trainingForm.conducted_date}
+                    onChange={(e) => setTrainingForm({ ...trainingForm, conducted_date: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                  />
+                </div>
               </div>
 
-              <div className="flex space-x-3 pt-4 border-t border-slate-800">
-                <button type="button" onClick={() => setShowTrainingModal(false)} className="btn-secondary flex-1">
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-gradient flex-1">
-                  Guardar Capacitación
-                </button>
+              <div className="flex space-x-3 pt-3">
+                <button type="button" onClick={() => setShowTrainingModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                <button type="submit" className="btn-gradient flex-1">Guardar Curso</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Modal 5: Acreditar Asistente de Curso */}
-      {showAttendeeModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md">
-          <div className="w-full max-w-md glass-card rounded-3xl p-8 space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <h3 className="text-xl font-bold text-white">Acreditar Trabajador</h3>
-              <button onClick={() => setShowAttendeeModal(false)} className="text-slate-500 hover:text-white">
+      {/* Modal 5: Acreditar Trabajador */}
+      {showAttendeeModal && userRole === 'ADMIN' && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-slate-950/70 backdrop-blur-sm">
+          <div className="w-full bg-[#070b19] border-t md:border border-slate-800 rounded-t-3xl md:rounded-3xl p-6 md:p-8 space-y-5 max-h-[92vh] md:max-h-[90vh] md:max-w-md overflow-y-auto pb-8 shadow-2xl">
+            <div className="block md:hidden w-12 h-1 bg-slate-800 rounded-full mx-auto mb-2"></div>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-bold text-white font-sans">Acreditar Trabajador</h3>
+              <button onClick={() => setShowAttendeeModal(false)} className="text-slate-500 p-1">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <form onSubmit={handleAddAttendee} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Nombre Completo del Trabajador</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Nombre del Colaborador</label>
                 <input 
                   type="text" required placeholder="Ej: Carlos Mendoza"
                   value={attendeeForm.employee_name}
                   onChange={(e) => setAttendeeForm({ ...attendeeForm, employee_name: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-650 text-sm focus:outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-850 text-slate-100 text-sm focus:outline-none"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Cédula Identidad / RUN / ID</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Cédula de Identidad / RUN</label>
                 <input 
                   type="text" required placeholder="Ej: 18.555.666-4"
                   value={attendeeForm.employee_run}
                   onChange={(e) => setAttendeeForm({ ...attendeeForm, employee_run: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 placeholder-slate-650 text-sm focus:outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-850 text-slate-100 text-sm focus:outline-none"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Estado</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Estado</label>
                 <select 
                   value={attendeeForm.status}
                   onChange={(e) => setAttendeeForm({ ...attendeeForm, status: e.target.value })}
@@ -2373,223 +2695,182 @@ export default function App() {
                 </select>
               </div>
 
-              <div className="flex space-x-3 pt-4 border-t border-slate-800">
-                <button type="button" onClick={() => setShowAttendeeModal(false)} className="btn-secondary flex-1">
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-gradient flex-1">
-                  Acreditar y Cerrar
-                </button>
+              <div className="flex space-x-3 pt-3">
+                <button type="button" onClick={() => setShowAttendeeModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                <button type="submit" className="btn-gradient flex-1">Acreditar y Cerrar</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Modal 6: Registrar Accidente (5 Porqués) */}
-      {showAccidentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md overflow-y-auto">
-          <div className="w-full max-w-2xl glass-card rounded-3xl p-8 space-y-6 my-8">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <h3 className="text-xl font-bold text-white">Investigación de Accidente</h3>
-              <button onClick={() => setShowAccidentModal(false)} className="text-slate-500 hover:text-white">
+      {/* Modal 6: Registrar Accidente */}
+      {showAccidentModal && userRole === 'ADMIN' && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-slate-950/70 backdrop-blur-sm">
+          <div className="w-full bg-[#070b19] border-t md:border border-slate-800 rounded-t-3xl md:rounded-3xl p-6 md:p-8 space-y-5 max-h-[92vh] md:max-h-[90vh] md:max-w-2xl overflow-y-auto pb-8 shadow-2xl">
+            <div className="block md:hidden w-12 h-1 bg-slate-800 rounded-full mx-auto mb-2"></div>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-bold text-white font-sans">Investigación de Accidente</h3>
+              <button onClick={() => setShowAccidentModal(false)} className="text-slate-500 p-1">
                 <X className="w-6 h-6" />
               </button>
             </div>
 
             <form onSubmit={handleCreateAccident} className="space-y-4">
-              
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Nombre del Afectado</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Nombre del Afectado</label>
                   <input 
                     type="text" required placeholder="Ej: Juan Pérez"
                     value={accidentForm.employee_name}
                     onChange={(e) => setAccidentForm({ ...accidentForm, employee_name: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Fecha y Hora</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Fecha y Hora</label>
                   <input 
-                    type="datetime-local" required
-                    value={accidentForm.date}
+                    type="datetime-local" required value={accidentForm.date}
                     onChange={(e) => setAccidentForm({ ...accidentForm, date: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1 col-span-2">
-                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Gravedad Legal</label>
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Gravedad Legal</label>
                   <select 
                     value={accidentForm.accident_type}
                     onChange={(e) => setAccidentForm({ ...accidentForm, accident_type: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                   >
-                    <option value="LEVE">Leve (Corte, contusión menor)</option>
-                    <option value="GRAVE">Grave (Accidente con hospitalización o amputación)</option>
+                    <option value="LEVE">Leve (Corte, golpe menor)</option>
+                    <option value="GRAVE">Grave (Fractura, hospitalización)</option>
                     <option value="FATAL">Fatal</option>
                   </select>
                 </div>
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Descripción de lo Sucedido</label>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Descripción de lo Sucedido</label>
                 <textarea 
-                  rows="2" required placeholder="Detalle cómo ocurrió el incidente en planta..."
+                  rows="2" required placeholder="Relato detallado de la desviación..."
                   value={accidentForm.description}
                   onChange={(e) => setAccidentForm({ ...accidentForm, description: e.target.value })}
-                  className="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                 />
               </div>
 
-              {/* 5 Whys Chain inputs */}
-              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
-                <span className="text-xs font-bold text-emerald-400 uppercase tracking-widest block">Metodología de los 5 Porqués</span>
-                
-                <div className="space-y-2">
-                  <input 
-                    type="text" required placeholder="1. ¿Por qué ocurrió el contacto/corte?"
-                    value={accidentForm.why1}
-                    onChange={(e) => setAccidentForm({ ...accidentForm, why1: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-100 placeholder-slate-600 focus:outline-none"
-                  />
-                  <input 
-                    type="text" required placeholder="2. ¿Por qué...? (Siguiente eslabón)"
-                    value={accidentForm.why2}
-                    onChange={(e) => setAccidentForm({ ...accidentForm, why2: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-100 placeholder-slate-600 focus:outline-none"
-                  />
-                  <input 
-                    type="text" required placeholder="3. ¿Por qué...?"
-                    value={accidentForm.why3}
-                    onChange={(e) => setAccidentForm({ ...accidentForm, why3: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-100 placeholder-slate-600 focus:outline-none"
-                  />
-                  <input 
-                    type="text" required placeholder="4. ¿Por qué...?"
-                    value={accidentForm.why4}
-                    onChange={(e) => setAccidentForm({ ...accidentForm, why4: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-100 placeholder-slate-600 focus:outline-none"
-                  />
-                  <input 
-                    type="text" required placeholder="5. ¿Por qué...? (Causa raíz raíz organizacional)"
-                    value={accidentForm.why5}
-                    onChange={(e) => setAccidentForm({ ...accidentForm, why5: e.target.value })}
-                    className="w-full px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-100 placeholder-slate-600 focus:outline-none"
-                  />
-                </div>
+              <div className="p-4 rounded-xl bg-slate-900 border border-slate-850 space-y-3">
+                <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest block font-sans">Cadena de los 5 Porqués</span>
+                <input 
+                  type="text" required placeholder="1. ¿Por qué ocurrió el contacto?"
+                  value={accidentForm.why1}
+                  onChange={(e) => setAccidentForm({ ...accidentForm, why1: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-100 focus:outline-none"
+                />
+                <input 
+                  type="text" required placeholder="2. ¿Por qué...? (Siguiente causa)"
+                  value={accidentForm.why2}
+                  onChange={(e) => setAccidentForm({ ...accidentForm, why2: e.target.value })}
+                  className="w-full px-3 py-2 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-100 focus:outline-none"
+                />
               </div>
 
-              {/* Corrective measures initial entry */}
-              <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
-                <span className="text-xs font-bold text-cyan-400 uppercase tracking-widest block">Medidas Correctivas Legales</span>
+              <div className="p-4 rounded-xl bg-slate-900 border border-slate-850 space-y-3">
+                <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest block font-sans">Medida Correctiva Inicial</span>
                 <div className="grid grid-cols-3 gap-2">
                   <input 
-                    type="text" required placeholder="Acción correctiva 1..."
+                    type="text" required placeholder="Acción correctiva obligatoria..."
                     value={accidentForm.measure1}
                     onChange={(e) => setAccidentForm({ ...accidentForm, measure1: e.target.value })}
-                    className="col-span-2 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-100 placeholder-slate-600 focus:outline-none"
+                    className="col-span-2 px-3 py-2 rounded-lg bg-slate-950 border border-slate-850 text-xs text-slate-105 focus:outline-none"
                   />
                   <input 
-                    type="date"
-                    value={accidentForm.measure1Date}
+                    type="date" value={accidentForm.measure1Date}
                     onChange={(e) => setAccidentForm({ ...accidentForm, measure1Date: e.target.value })}
-                    className="px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-xs text-slate-100 focus:outline-none"
+                    className="px-3 py-2 rounded-lg bg-slate-950 border border-slate-850 text-xs text-slate-105 focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="flex space-x-3 pt-4 border-t border-slate-800">
-                <button type="button" onClick={() => setShowAccidentModal(false)} className="btn-secondary flex-1">
-                  Cancelar
-                </button>
-                <button type="submit" className="btn-gradient flex-1">
-                  Guardar Investigación
-                </button>
+              <div className="flex space-x-3 pt-3">
+                <button type="button" onClick={() => setShowAccidentModal(false)} className="btn-secondary flex-1">Cancelar</button>
+                <button type="submit" className="btn-gradient flex-1">Guardar Investigación</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* Modal 7: Visualizar Certificado para Acreditación (Gorgeous PDF/Print layout) */}
+      {/* Modal 7: Visor de Certificados/Diplomas Pre-descarga */}
       {activeCertificatePdf && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
-          <div className="w-full max-w-2xl bg-white text-slate-900 rounded-3xl p-10 space-y-8 shadow-2xl relative border-8 border-emerald-500/10">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-lg md:max-w-2xl bg-white text-slate-900 rounded-3xl p-6 md:p-10 space-y-6 md:space-y-8 shadow-2xl relative border-8 border-emerald-500/10">
             
-            {/* Close trigger */}
             <button 
               onClick={() => setActiveCertificatePdf(null)}
-              className="absolute right-6 top-6 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 hover:text-slate-900 border transition-all"
+              className="absolute right-4 top-4 md:right-6 md:top-6 w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-505 hover:text-slate-900 border transition-all"
             >
               <X className="w-4 h-4" />
             </button>
 
-            {/* Certificate Print-Ready layout */}
-            <div className="text-center space-y-6 py-6 border-4 border-double border-slate-300 p-8 rounded-xl relative">
-              
-              {/* Seal */}
-              <div className="w-16 h-16 rounded-full bg-emerald-50/85 border-2 border-emerald-500 mx-auto flex items-center justify-center text-emerald-600">
-                <Shield className="w-8 h-8" />
+            <div className="text-center space-y-4 md:space-y-6 py-4 md:py-6 border-4 border-double border-slate-300 p-4 md:p-8 rounded-xl relative">
+              <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-emerald-50 border-2 border-emerald-500 mx-auto flex items-center justify-center text-emerald-600">
+                <Shield className="w-7 h-7 md:w-8 md:h-8" />
               </div>
 
-              <div className="space-y-2">
-                <h2 className="font-extrabold text-2xl tracking-wider text-slate-850 uppercase font-sans">CERTIFICADO DE ACREDITACIÓN</h2>
-                <p className="text-[10px] tracking-widest text-emerald-600 font-bold uppercase">Comité Paritario de Higiene y Seguridad</p>
+              <div className="space-y-1.5 font-sans">
+                <h2 className="font-extrabold text-lg md:text-2xl tracking-wider text-slate-800 uppercase font-sans">CERTIFICADO DE ACREDITACIÓN</h2>
+                <p className="text-[8px] md:text-[10px] tracking-widest text-emerald-600 font-bold uppercase">Comité Paritario de Higiene y Seguridad</p>
               </div>
 
-              <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+              <p className="text-[10px] md:text-xs text-slate-505 max-w-md mx-auto leading-relaxed">
                 El CPHS y la Dirección de Prevención de Riesgos de la Compañía certifican bajo el marco de las normativas de seguridad que el(la) trabajador(a):
               </p>
 
-              <div className="space-y-1">
-                <h3 className="text-2xl font-bold text-slate-900 font-sans">{activeCertificatePdf.employee_name}</h3>
-                <p className="text-xs font-semibold text-slate-500">Cédula de Identidad / RUN: {activeCertificatePdf.employee_run}</p>
+              <div className="space-y-0.5">
+                <h3 className="text-lg md:text-2xl font-bold text-slate-900 font-sans">{activeCertificatePdf.employee_name}</h3>
+                <p className="text-[10px] md:text-xs font-semibold text-slate-400">RUN: {activeCertificatePdf.employee_run}</p>
               </div>
 
-              <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
-                Ha aprobado y completado satisfactoriamente el curso teórico-práctico de:
+              <p className="text-[10px] md:text-xs text-slate-505">
+                Ha aprobado y completado el curso teórico-práctico de:
               </p>
 
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-150 inline-block max-w-lg">
-                <h4 className="font-bold text-sm text-slate-800">{activeCertificatePdf.training_topic}</h4>
-                <p className="text-[10px] text-slate-400 font-semibold mt-1">Dictado el día: {activeCertificatePdf.training_date}</p>
+              <div className="bg-slate-50 p-3 md:p-4 rounded-xl border border-slate-200 inline-block w-full md:w-auto md:max-w-lg font-sans">
+                <h4 className="font-bold text-xs md:text-sm text-slate-850 leading-snug">{activeCertificatePdf.training_topic}</h4>
+                <p className="text-[9px] md:text-[10px] text-slate-405 font-semibold mt-1">Fecha de Acreditación: {activeCertificatePdf.training_date}</p>
               </div>
 
-              {/* Signatures */}
-              <div className="grid grid-cols-2 gap-12 pt-8 max-w-md mx-auto">
-                <div className="text-center border-t border-slate-300 pt-3">
-                  <div className="h-8 italic text-slate-400 text-xs font-serif flex items-center justify-center">Jaime López</div>
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Presidente CPHS</span>
+              <div className="grid grid-cols-2 gap-6 md:gap-12 pt-6 md:pt-8 max-w-md mx-auto">
+                <div className="text-center border-t border-slate-300 pt-2">
+                  <div className="h-6 md:h-8 italic text-slate-400 text-[10px] md:text-xs font-serif flex items-center justify-center">Jaime López</div>
+                  <span className="text-[8px] md:text-[9px] font-bold text-slate-550 uppercase tracking-wider block font-sans">Presidente CPHS</span>
                 </div>
-                <div className="text-center border-t border-slate-300 pt-3">
-                  <div className="h-8 italic text-slate-400 text-xs font-serif flex items-center justify-center">Prev. CPHS</div>
-                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider block">Asesor Prevención</span>
+                <div className="text-center border-t border-slate-300 pt-2">
+                  <div className="h-6 md:h-8 italic text-slate-400 text-[10px] md:text-xs font-serif flex items-center justify-center">Prevencionista</div>
+                  <span className="text-[8px] md:text-[9px] font-bold text-slate-550 uppercase tracking-wider block font-sans">Asesor CPHS</span>
                 </div>
               </div>
             </div>
 
-            <div className="flex space-x-3 justify-end">
+            <div className="flex space-x-2.5 justify-end">
               <button 
                 onClick={() => setActiveCertificatePdf(null)}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border text-slate-700 text-xs font-bold transition-all"
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 border text-slate-700 text-xs font-bold transition-all flex-1 md:flex-none"
               >
                 Cerrar Vista
               </button>
               <button 
-                onClick={() => {
-                  window.print();
-                }}
-                className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all shadow-md flex items-center space-x-1.5"
+                onClick={() => window.print()}
+                className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition-all shadow-md flex items-center justify-center space-x-1.5 flex-1 md:flex-none"
               >
                 <Download className="w-4 h-4" />
-                <span>Imprimir Certificado</span>
+                <span>Descargar e Imprimir</span>
               </button>
             </div>
-
           </div>
         </div>
       )}
