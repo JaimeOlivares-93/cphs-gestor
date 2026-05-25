@@ -249,6 +249,10 @@ export default function App() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Nombres de meses en español
+  const MONTH_NAMES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const [selectedDashboardMonth, setSelectedDashboardMonth] = useState(new Date().getMonth() + 1);
+
   // ==========================================
   // NUEVO: Trabajador del Mes
   // ==========================================
@@ -259,12 +263,20 @@ export default function App() {
       name: 'Carlos Mendoza',
       role: 'Operario de Bodega y Despacho',
       reason: 'Reportó diligentemente 12 condiciones de riesgo y mantuvo asistencia del 100% en charlas de seguridad de EPP en el Taller.',
-      avatar: 'C'
+      avatar: 'C',
+      month: 'Mayo 2026',
+      photo: null
     };
   });
 
   const [showWorkerModal, setShowWorkerModal] = useState(false);
-  const [workerForm, setWorkerForm] = useState({ name: workerOfMonth.name, role: workerOfMonth.role, reason: workerOfMonth.reason });
+  const [workerForm, setWorkerForm] = useState({ 
+    name: workerOfMonth.name, 
+    role: workerOfMonth.role, 
+    reason: workerOfMonth.reason,
+    month: workerOfMonth.month || 'Mayo 2026',
+    photo: workerOfMonth.photo || null
+  });
 
   useEffect(() => {
     localStorage.setItem('cphs_prod_worker_month_v4', JSON.stringify(workerOfMonth));
@@ -276,10 +288,84 @@ export default function App() {
       name: workerForm.name,
       role: workerForm.role,
       reason: workerForm.reason,
-      avatar: workerForm.name ? workerForm.name.charAt(0).toUpperCase() : 'W'
+      month: workerForm.month,
+      photo: workerForm.photo,
+      avatar: workerForm.name ? workerForm.name.charAt(0).toUpperCase() : '🏆'
     };
     setWorkerOfMonth(updated);
     setShowWorkerModal(false);
+  };
+
+  const handleClearWorkerOfMonth = () => {
+    const cleared = {
+      name: '',
+      role: '',
+      reason: '',
+      avatar: '🏆',
+      month: 'Sin asignar',
+      photo: null
+    };
+    setWorkerOfMonth(cleared);
+    setWorkerForm({ name: '', role: '', reason: '', month: '', photo: null });
+    setShowWorkerModal(false);
+  };
+
+  // ==========================================
+  // NUEVO: Alertas de Terreno y Sugerencias
+  // ==========================================
+  const [preventionAlerts, setPreventionAlerts] = useState(() => {
+    const cached = localStorage.getItem('cphs_prevention_alerts_v4');
+    if (cached) return JSON.parse(cached);
+    return [
+      {
+        id: 1,
+        type: 'ALERTA',
+        description: 'Falta de demarcación de seguridad en la zona de maniobras de grúas horquillas en Bodega sector B.',
+        worker_name: 'Raúl Canumán',
+        date: '2026-05-24',
+        status: 'PENDIENTE',
+        photo: null
+      },
+      {
+        id: 2,
+        type: 'SUGERENCIA',
+        description: 'Instalar protectores de goma en las esquinas de los soportes metálicos del taller de mantención.',
+        worker_name: 'Gonzalo Jara',
+        date: '2026-05-20',
+        status: 'RESUELTA',
+        photo: null
+      }
+    ];
+  });
+
+  const [showAlertModal, setShowAlertModal] = useState(false);
+  const [editingAlert, setEditingAlert] = useState(null);
+  const [alertForm, setAlertForm] = useState({ type: 'ALERTA', description: '', worker_name: '', date: '', status: 'PENDIENTE', photo: null });
+
+  useEffect(() => {
+    localStorage.setItem('cphs_prevention_alerts_v4', JSON.stringify(preventionAlerts));
+  }, [preventionAlerts]);
+
+  const handleSaveAlert = (e) => {
+    e.preventDefault();
+    if (editingAlert) {
+      setPreventionAlerts(prev => prev.map(a => a.id === editingAlert.id ? { ...a, ...alertForm } : a));
+    } else {
+      const newAlert = {
+        id: Date.now(),
+        ...alertForm
+      };
+      setPreventionAlerts(prev => [newAlert, ...prev]);
+    }
+    setShowAlertModal(false);
+    setEditingAlert(null);
+    setAlertForm({ type: 'ALERTA', description: '', worker_name: '', date: '', status: 'PENDIENTE', photo: null });
+  };
+
+  const handleDeleteAlert = (id) => {
+    if (window.confirm('¿Está seguro de que desea eliminar esta alerta/sugerencia?')) {
+      setPreventionAlerts(prev => prev.filter(a => a.id !== id));
+    }
   };
 
   // Entities States
@@ -603,21 +689,17 @@ export default function App() {
     const completedMonthTasks = monthTasks.filter(t => t.status === 'COMPLETADO');
     const complianceMonth = monthTasks.length > 0 ? Math.round((completedMonthTasks.length / monthTasks.length) * 100) : 0;
 
-    const yearTasks = annualPlan.filter(t => t.month <= currentMonth);
-    const completedYearTasks = yearTasks.filter(t => t.status === 'COMPLETADO');
-    const complianceYear = yearTasks.length > 0 ? Math.round((completedYearTasks.length / yearTasks.length) * 100) : 0;
+    const completedYearTasks = annualPlan.filter(t => t.status === 'COMPLETADO');
+    // Cumplimiento Anual Proporcional: avance real basado en meses transcurridos
+    const currentMonthNum = new Date().getMonth() + 1;
+    const tasksUpToCurrentMonth = annualPlan.filter(t => t.month <= currentMonthNum);
+    const completedUpToCurrentMonth = tasksUpToCurrentMonth.filter(t => t.status === 'COMPLETADO');
+    const monthlyComplianceRate = tasksUpToCurrentMonth.length > 0 ? (completedUpToCurrentMonth.length / tasksUpToCurrentMonth.length) : 0;
+    const complianceYear = Math.round(monthlyComplianceRate * (currentMonthNum / 12) * 100);
 
     const meetCom = meetings.filter(m => m.status === 'COMPLETADA').length;
     const inspCom = inspections.filter(i => i.status === 'COMPLETADA').length;
     const trainCom = trainings.filter(t => t.status === 'COMPLETADA').length;
-
-    let totalHH = 0;
-    trainings.forEach(t => {
-      if (t.status === 'COMPLETADA') {
-        const count = certificates.filter(c => c.training_id === t.id).length || t.attendee_count || 0;
-        totalHH += (t.hours * count);
-      }
-    });
 
     const completedComs = commitments.filter(c => c.status === 'COMPLETADO').length;
     const totalComs = commitments.length;
@@ -628,7 +710,6 @@ export default function App() {
       meetings: meetCom,
       inspections: inspCom,
       trainings: trainCom,
-      totalHoursHomme: totalHH,
       commitments: { completed: completedComs, total: totalComs }
     };
   }, [meetings, commitments, inspections, trainings, certificates, annualPlan]);
@@ -1249,7 +1330,7 @@ export default function App() {
                             <Lock className="w-5.5 h-5.5" />
                         </div>
                         <div>
-                            <h3 className="text-lg md:text-xl font-bold text-white font-sans">Administración CPHS</h3>
+                            <h3 className="text-lg md:text-xl font-bold text-white font-sans">Administrador (Prevencionista/Presidente CPHS)</h3>
                             <p className="text-xs text-slate-400 mt-1 font-sans font-light">
                                 Ingrese credenciales autorizadas del comité para habilitar edición, carga de evidencias de hallazgos y gestión del Trabajador del Mes.
                             </p>
@@ -1368,20 +1449,11 @@ export default function App() {
 
         <div className="p-4 border-t border-slate-800 bg-[#040813] space-y-3">
           <div className="space-y-1">
-            <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block">ROL PREVISUALIZACIÓN</label>
-            <div className="flex bg-slate-900 border border-slate-800 p-0.5 rounded-lg">
-              <button 
-                onClick={() => setUserRole('ADMIN')}
-                className={`flex-1 text-[9px] font-bold py-1.5 rounded-md transition-all ${userRole === 'ADMIN' ? 'bg-emerald-500 text-white' : 'text-slate-500 hover:text-slate-300'}`}
-              >
-                Admin
-              </button>
-              <button 
-                onClick={() => setUserRole('PUBLIC')}
-                className={`flex-1 text-[9px] font-bold py-1.5 rounded-md transition-all ${userRole === 'PUBLIC' ? 'bg-[#334155] text-white' : 'text-slate-500 hover:text-slate-300'}`}
-              >
-                Público
-              </button>
+            <label className="text-[9px] font-bold text-slate-500 uppercase tracking-widest block font-sans">ROL DE ACCESO</label>
+            <div className="p-2 bg-slate-900/80 border border-slate-800/80 rounded-lg text-xs font-bold font-sans">
+              <span className={userRole === 'ADMIN' ? 'text-emerald-400' : 'text-slate-400'}>
+                {userRole === 'ADMIN' ? '🛠️ Administrador' : '🔒 Colaborador'}
+              </span>
             </div>
           </div>
 
@@ -1416,26 +1488,35 @@ export default function App() {
               <span className="text-[9px] md:text-xs font-bold text-emerald-500 uppercase tracking-widest block font-sans">Prevención de Riesgos</span>
               <h2 className="text-[10px] md:text-sm font-semibold text-slate-300 truncate">CPHS - Higiene, Seguridad y Prevención</h2>
             </div>
+            {/* Database status indicator */}
+            <div className="flex items-center ml-2.5 md:ml-4 shrink-0">
+              {cloudMode ? (
+                <span className="px-1.5 md:px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[8px] md:text-[9px] font-bold tracking-wider uppercase flex items-center space-x-1 md:space-x-1.5">
+                  <span className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>Nube (Supabase)</span>
+                </span>
+              ) : (
+                <span className="px-1.5 md:px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[8px] md:text-[9px] font-bold tracking-wider uppercase flex items-center space-x-1 md:space-x-1.5">
+                  <span className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-amber-400"></span>
+                  <span>Modo Demo</span>
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center space-x-3">
-            {/* Mobile Header Role Switcher */}
-            <div className="md:hidden flex bg-slate-950/80 border border-slate-800/80 p-0.5 rounded-lg text-[9px] font-bold">
-              <button 
-                onClick={() => setUserRole(userRole === 'ADMIN' ? 'PUBLIC' : 'ADMIN')}
-                className={`px-2 py-1 rounded transition-colors flex items-center space-x-1 ${
-                  userRole === 'ADMIN' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'
-                }`}
-              >
-                {userRole === 'ADMIN' ? <Shield className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-                <span>{userRole === 'ADMIN' ? 'Admin' : 'Público'}</span>
-              </button>
+            {/* Mobile Header Role Badge */}
+            <div className="md:hidden flex items-center space-x-1 px-2.5 py-1.5 rounded-lg bg-slate-950/85 border border-slate-800/80 text-[9px] font-bold font-sans">
+              <span className={`flex items-center space-x-1 ${userRole === 'ADMIN' ? 'text-emerald-400' : 'text-slate-450'}`}>
+                {userRole === 'ADMIN' ? <Shield className="w-3.5 h-3.5 text-emerald-400" /> : <Lock className="w-3.5 h-3.5 text-slate-500" />}
+                <span>{userRole === 'ADMIN' ? 'Administrador' : 'Colaborador'}</span>
+              </span>
             </div>
 
             <div className="text-right hidden sm:block">
               <h4 className="text-xs md:text-sm font-bold text-white leading-tight">Jaime Olivares</h4>
               <span className={`text-[10px] font-bold uppercase tracking-wider ${userRole === 'ADMIN' ? 'text-emerald-400' : 'text-slate-500'}`}>
-                {userRole === 'ADMIN' ? 'Presidente CPHS (ADMIN)' : 'Trabajador (SOLO LECTURA)'}
+                {userRole === 'ADMIN' ? 'Administrador (CPHS)' : 'Colaborador (SOLO LECTURA)'}
               </span>
             </div>
             <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-300 font-bold font-sans">
@@ -1470,36 +1551,52 @@ export default function App() {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-5 relative z-10">
                       <div className="flex items-center space-x-4">
                         <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-cyan-500 p-0.5 shadow-xl shadow-emerald-500/10 flex-shrink-0">
-                          <div className="w-full h-full rounded-2xl bg-slate-950 flex items-center justify-center text-emerald-400 text-2xl font-bold font-sans">
-                            {workerOfMonth.avatar}
-                          </div>
+                          {workerOfMonth.photo ? (
+                            <img src={workerOfMonth.photo} alt={workerOfMonth.name || 'Colaborador destacado'} className="w-full h-full rounded-2xl object-cover" />
+                          ) : (
+                            <div className="w-full h-full rounded-2xl bg-slate-950 flex items-center justify-center text-emerald-400 text-2xl font-bold font-sans">
+                              {workerOfMonth.name ? workerOfMonth.avatar : '🏆'}
+                            </div>
+                          )}
                         </div>
                         <div>
                           <div className="flex items-center space-x-2">
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold tracking-wider uppercase">Reconocimiento CPHS</span>
-                            <span className="text-[10px] text-amber-400 font-extrabold uppercase flex items-center space-x-1">
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold tracking-wider uppercase font-sans">
+                              Reconocimiento — {workerOfMonth.month || 'Mayo 2026'}
+                            </span>
+                            <span className="text-[10px] text-amber-400 font-extrabold uppercase flex items-center space-x-1 font-sans">
                               <Award className="w-3.5 h-3.5" />
                               <span>Prevención Activa</span>
                             </span>
                           </div>
-                          <h3 className="text-lg md:text-xl font-extrabold text-white mt-1 leading-tight font-sans">{workerOfMonth.name}</h3>
-                          <p className="text-xs text-slate-400 font-semibold">{workerOfMonth.role}</p>
+                          <h3 className="text-lg md:text-xl font-extrabold text-white mt-1 leading-tight font-sans">
+                            {workerOfMonth.name || 'Reconocimiento Vacante'}
+                          </h3>
+                          <p className="text-xs text-slate-400 font-semibold font-sans">
+                            {workerOfMonth.role || 'Pendiente de asignación'}
+                          </p>
                         </div>
                       </div>
                       
-                      <div className="flex-1 md:max-w-md bg-slate-950/50 p-3.5 rounded-xl border border-slate-900">
+                      <div className="flex-1 md:max-w-md bg-slate-950/50 p-3.5 rounded-xl border border-slate-900 font-sans">
                         <p className="text-xs text-slate-300 italic leading-relaxed">
-                          "{workerOfMonth.reason}"
+                          {workerOfMonth.reason ? `"${workerOfMonth.reason}"` : 'Aún no se ha seleccionado al colaborador destacado para este mes.'}
                         </p>
                       </div>
 
                       {userRole === 'ADMIN' && (
                         <button 
                           onClick={() => {
-                            setWorkerForm({ name: workerOfMonth.name, role: workerOfMonth.role, reason: workerOfMonth.reason });
+                            setWorkerForm({ 
+                              name: workerOfMonth.name, 
+                              role: workerOfMonth.role, 
+                              reason: workerOfMonth.reason, 
+                              month: workerOfMonth.month || 'Mayo 2026', 
+                              photo: workerOfMonth.photo || null 
+                            });
                             setShowWorkerModal(true);
                           }}
-                          className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-bold text-emerald-400 border border-emerald-500/20 transition-all flex items-center justify-center space-x-1.5 self-start md:self-auto shrink-0"
+                          className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-bold text-emerald-400 border border-emerald-500/20 transition-all flex items-center justify-center space-x-1.5 self-start md:self-auto shrink-0 font-sans"
                         >
                           <Edit className="w-4 h-4" />
                           <span>Actualizar</span>
@@ -1523,8 +1620,8 @@ export default function App() {
                   </div>
 
                   {/* KPIs Grid */}
-                  <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                    <div className="glass-card rounded-2xl p-5 flex items-center justify-between col-span-2 lg:col-span-1">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                    <div className="glass-card rounded-2xl p-5 flex items-center justify-between">
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-sans">Cumplimiento Mes</span>
                         <span className="text-2xl md:text-3xl font-extrabold text-white mt-1 block font-sans">{stats.complianceMonth}%</span>
@@ -1538,7 +1635,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="glass-card rounded-2xl p-5 flex items-center justify-between col-span-2 lg:col-span-1">
+                    <div className="glass-card rounded-2xl p-5 flex items-center justify-between">
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-sans">Cumplimiento Año</span>
                         <span className="text-2xl md:text-3xl font-extrabold text-white mt-1 block font-sans">{stats.complianceYear}%</span>
@@ -1552,7 +1649,7 @@ export default function App() {
                       </div>
                     </div>
 
-                    <div className="glass-card rounded-2xl p-5 flex items-center justify-between col-span-1">
+                    <div className="glass-card rounded-2xl p-5 flex items-center justify-between">
                       <div>
                         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-sans">Acuerdos</span>
                         <span className="text-xl md:text-2xl font-extrabold text-white mt-1 block font-sans">
@@ -1563,124 +1660,217 @@ export default function App() {
                         <CheckCircle2 className="w-5.5 h-5.5" />
                       </div>
                     </div>
-
-                    <div className="glass-card rounded-2xl p-5 flex items-center justify-between col-span-1">
-                      <div>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block font-sans">Horas Hombre</span>
-                        <span className="text-xl md:text-2xl font-extrabold text-white mt-1 block font-sans">{stats.totalHoursHomme} HH</span>
-                      </div>
-                      <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400 shrink-0">
-                        <GraduationCap className="w-5.5 h-5.5" />
-                      </div>
-                    </div>
                   </div>
 
                   {/* Graphical summary */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:gap-8 font-sans">
-                    <div className="lg:col-span-2 glass-card rounded-3xl p-6 md:p-8 space-y-6">
-                      <div>
-                        <h3 className="text-base md:text-lg font-bold text-white">Desglose de Gestión Mensual</h3>
-                        <p className="text-[11px] md:text-xs text-slate-400">Distribución de tareas reglamentarias del comité paritario.</p>
-                      </div>
+                    
+                    {/* LEFT CONTAINER: Cumplimiento del Mes & Acuerdos */}
+                    <div className="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                      
+                      {/* CARD 1: Cumplimiento del Mes */}
+                      <div className="glass-card rounded-3xl p-6 border border-slate-800/80 flex flex-col space-y-4 bg-[#070b19]/60">
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2">
+                              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                              <h3 className="text-sm md:text-base font-bold text-white">Cumplimiento del Mes</h3>
+                            </div>
+                            <select 
+                              value={selectedDashboardMonth}
+                              onChange={(e) => setSelectedDashboardMonth(Number(e.target.value))}
+                              className="px-2 py-1 rounded-lg bg-slate-950 border border-slate-800 text-xs text-emerald-400 font-bold focus:outline-none focus:border-emerald-500/50 cursor-pointer"
+                            >
+                              {MONTH_NAMES.map((name, idx) => (
+                                <option key={idx} value={idx + 1}>{name}</option>
+                              ))}
+                            </select>
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-0.5">Checklist de actividades reglamentarias programadas.</p>
+                        </div>
 
-                      <div className="space-y-5 pt-2">
-                        {[
-                          { category: 'Reuniones Mensuales', stats: { completadas: meetings.filter(m => m.status === 'COMPLETADA').length, pendientes: meetings.filter(m => m.status === 'PENDIENTE').length }, colorClass: 'bg-emerald-500', totalCount: meetings.length },
-                          { category: 'Inspecciones de Terreno', stats: { completadas: inspections.filter(i => i.status === 'COMPLETADA').length, pendientes: inspections.filter(i => i.status === 'PENDIENTE').length }, colorClass: 'bg-cyan-500', totalCount: inspections.length },
-                          { category: 'Capacitaciones Dictadas', stats: { completadas: trainings.filter(t => t.status === 'COMPLETADA').length, pendientes: trainings.filter(t => t.status === 'PENDIENTE').length }, colorClass: 'bg-yellow-500', totalCount: trainings.length }
-                        ].map((bar, i) => {
-                          const total = bar.totalCount;
-                          const completedPercent = total > 0 ? (bar.stats.completadas / total) * 100 : 0;
-                          const pendingPercent = total > 0 ? (bar.stats.pendientes / total) * 100 : 0;
-
-                          return (
-                            <div key={i} className="space-y-1.5">
-                              <div className="flex items-center justify-between text-xs">
-                                <span className="font-semibold text-slate-200">{bar.category}</span>
-                                <div className="flex items-center space-x-3 text-[10px] font-bold">
-                                  <span className="text-emerald-400">{bar.stats.completadas} Hechos</span>
-                                  <span className="text-slate-500">{bar.stats.pendientes} Pendientes</span>
+                        <div className="space-y-3 flex-1 overflow-y-auto max-h-[300px] pr-1.5 scrollbar-thin">
+                          {(() => {
+                            const selectedMonthTasks = annualPlan.filter(t => t.month === selectedDashboardMonth);
+                            const hasRecognition = workerOfMonth.name && workerOfMonth.month && workerOfMonth.month.toLowerCase().includes(MONTH_NAMES[selectedDashboardMonth - 1].toLowerCase());
+                            return (
+                              <>
+                                {/* Item especial: Reconocimiento del Mes */}
+                                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-900 flex items-start space-x-3">
+                                  <div className="mt-0.5 shrink-0">
+                                    {hasRecognition ? (
+                                      <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400" />
+                                    ) : (
+                                      <Clock className="w-4.5 h-4.5 text-amber-500 animate-pulse" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-xs font-semibold text-slate-200 truncate">🏆 Reconocimiento del Mes</p>
+                                    <div className="flex items-center space-x-2 mt-1">
+                                      <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">{hasRecognition ? workerOfMonth.name : 'Pendiente de asignación'}</span>
+                                      <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${hasRecognition ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
+                                        {hasRecognition ? 'Cumplido' : 'Pendiente'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                                {selectedMonthTasks.length === 0 ? (
+                                  <p className="text-xs text-slate-500 italic">No hay actividades planificadas para este mes.</p>
+                                ) : (
+                                  selectedMonthTasks.map(task => (
+                              <div key={task.id} className="p-3 rounded-xl bg-slate-950/60 border border-slate-900 flex items-start space-x-3">
+                                <div className="mt-0.5 shrink-0">
+                                  {task.status === 'COMPLETADO' ? (
+                                    <CheckCircle2 className="w-4.5 h-4.5 text-emerald-400" />
+                                  ) : (
+                                    <Clock className="w-4.5 h-4.5 text-amber-500 animate-pulse" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-semibold text-slate-200 truncate">{task.task_name}</p>
+                                  <div className="flex items-center space-x-2 mt-1">
+                                    <span className="text-[9px] text-slate-500 uppercase font-bold tracking-wider">{task.responsible}</span>
+                                    <span className={`text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${task.status === 'COMPLETADO' ? 'bg-emerald-550/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-550/10 text-amber-400 border border-amber-500/20'}`}>
+                                      {task.status === 'COMPLETADO' ? 'Cumplido' : 'Pendiente'}
+                                    </span>
+                                  </div>
                                 </div>
                               </div>
-                              <div className="w-full h-2.5 rounded-full bg-slate-950 overflow-hidden flex border border-slate-900">
-                                <div className={`${bar.colorClass} h-full transition-all duration-700`} style={{ width: `${completedPercent}%` }}></div>
-                                <div className="bg-slate-700 h-full transition-all duration-700" style={{ width: `${pendingPercent}%` }}></div>
+                                  ))
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* CARD 2: Control de Acuerdos */}
+                      <div className="glass-card rounded-3xl p-6 border border-slate-800/80 flex flex-col space-y-4 bg-[#070b19]/60">
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-pulse"></span>
+                            <h3 className="text-sm md:text-base font-bold text-white">Acuerdos del Comité (Compromisos)</h3>
+                          </div>
+                          <p className="text-[10px] text-slate-500 mt-0.5">Seguimiento de acuerdos paritarios y plazos legales.</p>
+                        </div>
+
+                        <div className="space-y-3 flex-1 overflow-y-auto max-h-[300px] pr-1.5 scrollbar-thin">
+                          {commitments.length === 0 ? (
+                            <p className="text-xs text-slate-500 italic">No hay compromisos o acuerdos registrados en el sistema.</p>
+                          ) : (
+                            commitments.filter(c => {
+                              const meeting = meetings.find(m => m.id === c.meeting_id);
+                              if (!meeting) return c.status === 'PENDIENTE';
+                              const meetDate = new Date(meeting.date);
+                              const meetMonth = meetDate.getMonth() + 1;
+                              return meetMonth === selectedDashboardMonth || c.status === 'PENDIENTE';
+                            }).map(c => {
+                              const isDone = c.status === 'COMPLETADO';
+                              return (
+                                <div key={c.id} className="p-3 rounded-xl bg-slate-950/60 border border-slate-900 flex items-start space-x-3">
+                                  <div className="mt-0.5 shrink-0">
+                                    {isDone ? (
+                                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                    ) : (
+                                      <div className="w-4 h-4 rounded-full border-2 border-amber-500/30 border-t-amber-500 animate-spin shrink-0"></div>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className={`text-xs font-semibold ${isDone ? 'text-slate-500 line-through' : 'text-slate-200'}`}>{c.description}</p>
+                                    <div className="flex items-center justify-between mt-1">
+                                      <span className="text-[9px] text-slate-500 font-bold">{c.responsible_name}</span>
+                                      <span className={`text-[8px] font-bold px-1 py-0.2 rounded uppercase ${isDone ? 'text-slate-500 bg-slate-900' : 'text-amber-400 bg-amber-500/10'}`}>
+                                        {isDone ? 'Cerrado' : 'Pendiente'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* RIGHT CONTAINER: Alertas de Prevención y Sugerencias */}
+                    <div className="glass-card rounded-3xl p-6 border border-slate-800/80 flex flex-col space-y-4 bg-[#070b19]/60">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <AlertTriangle className="w-4.5 h-4.5 text-amber-500 animate-bounce" />
+                          <h3 className="text-sm md:text-base font-bold text-white">Alertas & Sugerencias</h3>
+                        </div>
+                        {userRole === 'ADMIN' && (
+                          <button 
+                            onClick={() => {
+                              setEditingAlert(null);
+                              setAlertForm({ type: 'ALERTA', description: '', worker_name: '', date: new Date().toISOString().split('T')[0], status: 'PENDIENTE', photo: null });
+                              setShowAlertModal(true);
+                            }}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/25 border border-emerald-500/30 text-[10px] font-bold text-emerald-400 transition-colors font-sans"
+                          >
+                            + Reportar
+                          </button>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-500 mt-0.5">Control de hallazgos preventivos reportados en terreno por colaboradores.</p>
+
+                      <div className="space-y-3.5 flex-1 overflow-y-auto max-h-[300px] pr-1.5 scrollbar-thin">
+                        {preventionAlerts.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center py-6 text-center space-y-2">
+                            <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                            <p className="text-xs font-bold text-slate-300">¡Sin alertas pendientes!</p>
+                            <p className="text-[9px] text-slate-500">No se registran alertas de terreno en este período.</p>
+                          </div>
+                        ) : (
+                          preventionAlerts.map(alert => (
+                            <div key={alert.id} className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-900 space-y-2.5">
+                              <div className="flex justify-between items-center text-[9px] font-bold">
+                                <span className={`px-1.5 py-0.5 rounded ${alert.type === 'ALERTA' ? 'bg-rose-500/15 text-rose-450 border border-rose-500/25' : 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/25'}`}>
+                                  {alert.type === 'ALERTA' ? '⚠️ ALERTA DE TERRENO' : '💡 SUGERENCIA'}
+                                </span>
+                                <span className="text-slate-500">{alert.date}</span>
+                              </div>
+                              <p className="text-xs font-semibold text-slate-200 leading-relaxed">{alert.description}</p>
+                              
+                              {alert.photo && (
+                                <img src={alert.photo} alt="Evidencia de alerta" className="w-full h-24 rounded-lg object-cover border border-slate-900 shadow" />
+                              )}
+
+                              <div className="flex items-center justify-between text-[9px] text-slate-500 pt-0.5">
+                                <span>Reporta: <strong className="text-slate-400">{alert.worker_name}</strong></span>
+                                <div className="flex items-center space-x-2">
+                                  <span className={`px-1.5 py-0.5 rounded font-extrabold uppercase ${alert.status === 'RESUELTA' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                                    {alert.status === 'RESUELTA' ? 'Resuelta' : 'Pendiente'}
+                                  </span>
+                                  {userRole === 'ADMIN' && (
+                                    <div className="flex items-center space-x-1 border-l border-slate-800 pl-1.5">
+                                      <button 
+                                        onClick={() => {
+                                          setEditingAlert(alert);
+                                          setAlertForm({ type: alert.type, description: alert.description, worker_name: alert.worker_name, date: alert.date, status: alert.status, photo: alert.photo });
+                                          setShowAlertModal(true);
+                                        }}
+                                        className="text-cyan-450 hover:text-cyan-400 font-bold"
+                                      >
+                                        Editar
+                                      </button>
+                                      <button 
+                                        onClick={() => handleDeleteAlert(alert.id)}
+                                        className="text-rose-550 hover:text-rose-500 font-bold"
+                                      >
+                                        Borrar
+                                      </button>
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Alerts Panel */}
-                    <div className="glass-card rounded-3xl p-6 md:p-8 space-y-5 flex flex-col">
-                      <div className="flex items-center space-x-2">
-                        <AlertTriangle className="w-4.5 h-4.5 text-amber-500" />
-                        <h3 className="text-sm md:text-base font-bold text-white">Alertas de Prevención</h3>
-                      </div>
-                      
-                      <div className="space-y-3.5 flex-1 overflow-y-auto max-h-72">
-                        {alerts.criticalFindings.length === 0 && alerts.upcomingCommitments.length === 0 && (
-                          <div className="flex flex-col items-center justify-center h-full text-center space-y-2 py-4">
-                            <CheckCircle2 className="w-7 h-7 text-emerald-400" />
-                            <p className="text-xs font-bold text-slate-350">¡Sin desviaciones críticas!</p>
-                            <p className="text-[10px] text-slate-500">Todo el programa paritario se encuentra auditado.</p>
-                          </div>
+                          ))
                         )}
-
-                        {alerts.criticalFindings.map(f => (
-                          <div key={f.id} className="p-3.5 rounded-xl bg-rose-500/5 border border-rose-500/20 space-y-2">
-                            <div className="flex justify-between items-center text-[9px] font-bold">
-                              <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 font-sans">RIESGO CRÍTICO</span>
-                              <span className="text-slate-500 font-sans">Plazo: {f.due_date}</span>
-                            </div>
-                            <p className="text-xs font-semibold text-slate-200">{f.description}</p>
-                            <div className="flex items-center justify-between text-[9px] text-slate-500 pt-1 font-sans">
-                              <span>Medida: {f.corrective_measure}</span>
-                              {userRole === 'ADMIN' ? (
-                                <button 
-                                  onClick={() => handleCloseFinding(f.id)}
-                                  className="text-rose-400 hover:text-rose-300 font-bold"
-                                >
-                                  Solucionar
-                                </button>
-                              ) : (
-                                <span className="text-slate-650 flex items-center space-x-0.5">
-                                  <Lock className="w-2.5 h-2.5" />
-                                  <span>Cerrar</span>
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-
-                        {alerts.upcomingCommitments.map(c => (
-                          <div key={c.id} className="p-3.5 rounded-xl bg-amber-500/5 border border-amber-500/10 space-y-2">
-                            <div className="flex justify-between items-center text-[9px] font-bold">
-                              <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400">COMPROMISO</span>
-                              <span className="text-slate-500">Límite: {c.due_date}</span>
-                            </div>
-                            <p className="text-xs font-semibold text-slate-200">{c.description}</p>
-                            <div className="flex items-center justify-between text-[9px] text-slate-500 pt-1 font-sans">
-                              <span>Resp: {c.responsible_name}</span>
-                              {userRole === 'ADMIN' ? (
-                                <button 
-                                  onClick={() => toggleCommitment(c.id)}
-                                  className="text-emerald-400 hover:text-emerald-300 font-bold"
-                                >
-                                  Marcar Listo
-                                </button>
-                              ) : (
-                                <span className="text-slate-650 flex items-center space-x-0.5">
-                                  <Lock className="w-2.5 h-2.5" />
-                                  <span>Admin</span>
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        ))}
                       </div>
                     </div>
+
                   </div>
 
                 </div>
@@ -1705,7 +1895,7 @@ export default function App() {
                     ) : (
                       <span className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-500 flex items-center space-x-1">
                         <Lock className="w-3.5 h-3.5 text-slate-600" />
-                        <span>Lectura (Público)</span>
+                        <span>Colaborador (Solo Lectura)</span>
                       </span>
                     )}
                   </div>
@@ -1949,7 +2139,7 @@ export default function App() {
                     ) : (
                       <span className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-500 flex items-center space-x-1">
                         <Lock className="w-3.5 h-3.5 text-slate-600" />
-                        <span>Lectura (Público)</span>
+                        <span>Colaborador (Solo Lectura)</span>
                       </span>
                     )}
                   </div>
@@ -2139,7 +2329,7 @@ export default function App() {
                     ) : (
                       <span className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-500 flex items-center space-x-1">
                         <Lock className="w-3.5 h-3.5 text-slate-600" />
-                        <span>Lectura (Público)</span>
+                        <span>Colaborador (Solo Lectura)</span>
                       </span>
                     )}
                   </div>
@@ -2359,7 +2549,7 @@ export default function App() {
                     ) : (
                       <span className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-500 flex items-center space-x-1">
                         <Lock className="w-3.5 h-3.5 text-slate-600" />
-                        <span>Lectura (Público)</span>
+                        <span>Colaborador (Solo Lectura)</span>
                       </span>
                     )}
                   </div>
@@ -2653,6 +2843,14 @@ export default function App() {
                 />
               </div>
               <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Mes del Reconocimiento</label>
+                <input 
+                  type="text" required placeholder="Ej: Mayo 2026" value={workerForm.month}
+                  onChange={(e) => setWorkerForm({ ...workerForm, month: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                />
+              </div>
+              <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Descripción del Mérito de Seguridad</label>
                 <textarea 
                   rows="3" required value={workerForm.reason}
@@ -2660,9 +2858,153 @@ export default function App() {
                   className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
                 />
               </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Foto del Colaborador</label>
+                <input 
+                  type="file" accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setWorkerForm(prev => ({ ...prev, photo: reader.result }));
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-900 file:text-emerald-400 hover:file:bg-slate-800"
+                />
+                {workerForm.photo && (
+                  <div className="flex items-center space-x-2 pt-2">
+                    <img src={workerForm.photo} alt="Vista previa" className="w-12 h-12 rounded-xl object-cover border border-slate-800" />
+                    <button 
+                      type="button" 
+                      onClick={() => setWorkerForm(prev => ({ ...prev, photo: null }))}
+                      className="text-[10px] text-rose-450 hover:underline font-sans"
+                    >
+                      Remover foto
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex flex-col space-y-2 pt-3">
+                <div className="flex space-x-3">
+                  <button type="button" onClick={() => setShowWorkerModal(false)} className="btn-secondary flex-1 font-sans">Cancelar</button>
+                  <button type="submit" className="btn-gradient flex-1 font-sans">Guardar Cambios</button>
+                </div>
+                {workerOfMonth.name && (
+                  <button 
+                    type="button" 
+                    onClick={handleClearWorkerOfMonth} 
+                    className="w-full py-2.5 rounded-xl border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 text-rose-450 text-xs font-bold font-sans transition-all"
+                  >
+                    Eliminar / Vaciar Reconocimiento
+                  </button>
+                )}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 0.5: Alertas de Prevención & Sugerencias */}
+      {showAlertModal && userRole === 'ADMIN' && (
+        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-slate-950/70 backdrop-blur-sm">
+          <div className="w-full bg-[#070b19] border-t md:border border-slate-800 rounded-t-3xl md:rounded-3xl p-6 md:p-8 space-y-5 max-h-[92vh] md:max-h-[90vh] md:max-w-lg overflow-y-auto pb-8 shadow-2xl">
+            <div className="block md:hidden w-12 h-1 bg-slate-800 rounded-full mx-auto mb-2"></div>
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h3 className="text-lg font-bold text-white font-sans">{editingAlert ? 'Editar Reporte' : 'Añadir Reporte de Terreno'}</h3>
+              <button onClick={() => { setShowAlertModal(false); setEditingAlert(null); }} className="text-slate-500 p-1">
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveAlert} className="space-y-4 font-sans">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Tipo de Registro</label>
+                <select 
+                  value={alertForm.type}
+                  onChange={(e) => setAlertForm({ ...alertForm, type: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                >
+                  <option value="ALERTA">⚠️ Alerta de Terreno</option>
+                  <option value="SUGERENCIA">💡 Sugerencia de Colaborador</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Colaborador que Reporta</label>
+                <input 
+                  type="text" required placeholder="Ej: Raúl Canumán" value={alertForm.worker_name}
+                  onChange={(e) => setAlertForm({ ...alertForm, worker_name: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Fecha</label>
+                <input 
+                  type="date" required value={alertForm.date}
+                  onChange={(e) => setAlertForm({ ...alertForm, date: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Descripción del Suceso / Propuesta</label>
+                <textarea 
+                  rows="3" required placeholder="Describa el hallazgo o la sugerencia de seguridad..." value={alertForm.description}
+                  onChange={(e) => setAlertForm({ ...alertForm, description: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Estado del Reporte</label>
+                <select 
+                  value={alertForm.status}
+                  onChange={(e) => setAlertForm({ ...alertForm, status: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-slate-100 text-sm focus:outline-none"
+                >
+                  <option value="PENDIENTE">🟡 Pendiente de análisis</option>
+                  <option value="RESUELTA">🟢 Resuelta / Cerrada</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Foto de Evidencia (Terreno)</label>
+                <input 
+                  type="file" accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setAlertForm(prev => ({ ...prev, photo: reader.result }));
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-900 file:text-emerald-400 hover:file:bg-slate-800"
+                />
+                {alertForm.photo && (
+                  <div className="flex items-center space-x-2 pt-2">
+                    <img src={alertForm.photo} alt="Vista previa" className="w-12 h-12 rounded-xl object-cover border border-slate-800" />
+                    <button 
+                      type="button" 
+                      onClick={() => setAlertForm(prev => ({ ...prev, photo: null }))}
+                      className="text-[10px] text-rose-450 hover:underline"
+                    >
+                      Remover foto
+                    </button>
+                  </div>
+                )}
+              </div>
+
               <div className="flex space-x-3 pt-3">
-                <button type="button" onClick={() => setShowWorkerModal(false)} className="btn-secondary flex-1">Cancelar</button>
-                <button type="submit" className="btn-gradient flex-1">Guardar Cambios</button>
+                <button type="button" onClick={() => { setShowAlertModal(false); setEditingAlert(null); }} className="btn-secondary flex-1">Cancelar</button>
+                <button type="submit" className="btn-gradient flex-1">Guardar Reporte</button>
               </div>
             </form>
           </div>
