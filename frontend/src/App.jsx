@@ -1416,6 +1416,20 @@ export default function App() {
               <span className="text-[9px] md:text-xs font-bold text-emerald-500 uppercase tracking-widest block font-sans">Prevención de Riesgos</span>
               <h2 className="text-[10px] md:text-sm font-semibold text-slate-300 truncate">CPHS - Higiene, Seguridad y Prevención</h2>
             </div>
+            {/* Database status indicator */}
+            <div className="flex items-center ml-2.5 md:ml-4 shrink-0">
+              {cloudMode ? (
+                <span className="px-1.5 md:px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[8px] md:text-[9px] font-bold tracking-wider uppercase flex items-center space-x-1 md:space-x-1.5">
+                  <span className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>Nube (Supabase)</span>
+                </span>
+              ) : (
+                <span className="px-1.5 md:px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[8px] md:text-[9px] font-bold tracking-wider uppercase flex items-center space-x-1 md:space-x-1.5">
+                  <span className="w-1 md:w-1.5 h-1 md:h-1.5 rounded-full bg-amber-400"></span>
+                  <span>Modo Demo</span>
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center space-x-3">
