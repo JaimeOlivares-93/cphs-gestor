@@ -282,7 +282,21 @@ export default function App() {
     localStorage.setItem('cphs_prod_worker_month_v4', JSON.stringify(workerOfMonth));
   }, [workerOfMonth]);
 
-  const handleSaveWorkerOfMonth = (e) => {
+  // Sync workerOfMonth from Supabase on mount
+  useEffect(() => {
+    if (!supabase) return;
+    async function loadWorkerFromCloud() {
+      try {
+        const { data, error } = await supabase.from('worker_of_month').select('*').order('id', { ascending: false }).limit(1).single();
+        if (!error && data) {
+          setWorkerOfMonth({ name: data.name, role: data.role, reason: data.reason, avatar: data.name ? data.name.charAt(0).toUpperCase() : '🏆', month: data.month, photo: data.photo });
+        }
+      } catch (e) { console.warn('worker_of_month table not found, using localStorage fallback'); }
+    }
+    loadWorkerFromCloud();
+  }, []);
+
+  const handleSaveWorkerOfMonth = async (e) => {
     e.preventDefault();
     const updated = {
       name: workerForm.name,
@@ -294,9 +308,20 @@ export default function App() {
     };
     setWorkerOfMonth(updated);
     setShowWorkerModal(false);
+    // Sync to Supabase
+    if (supabase) {
+      try {
+        const { data: existing } = await supabase.from('worker_of_month').select('id').limit(1).single();
+        if (existing) {
+          await supabase.from('worker_of_month').update({ name: updated.name, role: updated.role, reason: updated.reason, month: updated.month, photo: updated.photo, updated_at: new Date().toISOString() }).eq('id', existing.id);
+        } else {
+          await supabase.from('worker_of_month').insert([{ name: updated.name, role: updated.role, reason: updated.reason, month: updated.month, photo: updated.photo }]);
+        }
+      } catch (e) { console.error('Error syncing worker_of_month to Supabase:', e); }
+    }
   };
 
-  const handleClearWorkerOfMonth = () => {
+  const handleClearWorkerOfMonth = async () => {
     const cleared = {
       name: '',
       role: '',
@@ -308,6 +333,15 @@ export default function App() {
     setWorkerOfMonth(cleared);
     setWorkerForm({ name: '', role: '', reason: '', month: '', photo: null });
     setShowWorkerModal(false);
+    // Sync to Supabase
+    if (supabase) {
+      try {
+        const { data: existing } = await supabase.from('worker_of_month').select('id').limit(1).single();
+        if (existing) {
+          await supabase.from('worker_of_month').update({ name: '', role: '', reason: '', month: 'Sin asignar', photo: null, updated_at: new Date().toISOString() }).eq('id', existing.id);
+        }
+      } catch (e) { console.error('Error clearing worker_of_month in Supabase:', e); }
+    }
   };
 
   // ==========================================
@@ -346,25 +380,64 @@ export default function App() {
     localStorage.setItem('cphs_prevention_alerts_v4', JSON.stringify(preventionAlerts));
   }, [preventionAlerts]);
 
-  const handleSaveAlert = (e) => {
+  // Sync preventionAlerts from Supabase on mount
+  useEffect(() => {
+    if (!supabase) return;
+    async function loadAlertsFromCloud() {
+      try {
+        const { data, error } = await supabase.from('prevention_alerts').select('*').order('created_at', { ascending: false });
+        if (!error && data && data.length > 0) {
+          setPreventionAlerts(data);
+        }
+      } catch (e) { console.warn('prevention_alerts table not found, using localStorage fallback'); }
+    }
+    loadAlertsFromCloud();
+  }, []);
+
+  const handleSaveAlert = async (e) => {
     e.preventDefault();
     if (editingAlert) {
-      setPreventionAlerts(prev => prev.map(a => a.id === editingAlert.id ? { ...a, ...alertForm } : a));
+      const updatedAlerts = preventionAlerts.map(a => a.id === editingAlert.id ? { ...a, ...alertForm } : a);
+      setPreventionAlerts(updatedAlerts);
+      // Sync update to Supabase
+      if (supabase) {
+        try {
+          await supabase.from('prevention_alerts').update({ type: alertForm.type, description: alertForm.description, worker_name: alertForm.worker_name, date: alertForm.date, status: alertForm.status, photo: alertForm.photo, updated_at: new Date().toISOString() }).eq('id', editingAlert.id);
+        } catch (e) { console.error('Error updating alert in Supabase:', e); }
+      }
     } else {
-      const newAlert = {
-        id: Date.now(),
-        ...alertForm
-      };
-      setPreventionAlerts(prev => [newAlert, ...prev]);
+      if (supabase) {
+        try {
+          const { data: inserted, error } = await supabase.from('prevention_alerts').insert([{ type: alertForm.type, description: alertForm.description, worker_name: alertForm.worker_name, date: alertForm.date, status: alertForm.status, photo: alertForm.photo }]).select();
+          if (!error && inserted && inserted.length > 0) {
+            setPreventionAlerts(prev => [inserted[0], ...prev]);
+          } else {
+            const newAlert = { id: Date.now(), ...alertForm };
+            setPreventionAlerts(prev => [newAlert, ...prev]);
+          }
+        } catch (e) {
+          const newAlert = { id: Date.now(), ...alertForm };
+          setPreventionAlerts(prev => [newAlert, ...prev]);
+        }
+      } else {
+        const newAlert = { id: Date.now(), ...alertForm };
+        setPreventionAlerts(prev => [newAlert, ...prev]);
+      }
     }
     setShowAlertModal(false);
     setEditingAlert(null);
     setAlertForm({ type: 'ALERTA', description: '', worker_name: '', date: '', status: 'PENDIENTE', photo: null });
   };
 
-  const handleDeleteAlert = (id) => {
+  const handleDeleteAlert = async (id) => {
     if (window.confirm('¿Está seguro de que desea eliminar esta alerta/sugerencia?')) {
       setPreventionAlerts(prev => prev.filter(a => a.id !== id));
+      // Sync delete to Supabase
+      if (supabase) {
+        try {
+          await supabase.from('prevention_alerts').delete().eq('id', id);
+        } catch (e) { console.error('Error deleting alert from Supabase:', e); }
+      }
     }
   };
 

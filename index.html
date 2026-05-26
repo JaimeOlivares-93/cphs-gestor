@@ -42,6 +42,7 @@
     <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
     <!-- Custom CSS for effects -->
     <style>
@@ -423,6 +424,11 @@
         };
 
         function App() {
+            // Supabase Client Initialization
+            const supabaseUrl = 'https://zdhsuhxshsrslxlnllcs.supabase.co';
+            const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpkaHN1aHhzaHNyc2x4bG5sbGNzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2ODkyNjcsImV4cCI6MjA5NTI2NTI2N30.YIUQnYjmHf0EBPgdoiwg23xMuL08trka0WJt_dPVSmY';
+            const sbClient = (typeof window !== 'undefined' && window.supabase) ? window.supabase.createClient(supabaseUrl, supabaseAnonKey) : null;
+
             // ==========================================
             // NUEVO: Enrutamiento Principal Condicional (Welcome Portal)
             // ==========================================
@@ -484,7 +490,21 @@
                 localStorage.setItem('cphs_worker_month_v4', JSON.stringify(workerOfMonth));
             }, [workerOfMonth]);
 
-            const handleSaveWorkerOfMonth = (e) => {
+            // Sync workerOfMonth from Supabase on mount
+            useEffect(() => {
+                if (!sbClient) return;
+                async function loadWorkerFromCloud() {
+                    try {
+                        const { data, error } = await sbClient.from('worker_of_month').select('*').order('id', { ascending: false }).limit(1).single();
+                        if (!error && data) {
+                            setWorkerOfMonth({ name: data.name, role: data.role, reason: data.reason, avatar: data.name ? data.name.charAt(0).toUpperCase() : '🏆', month: data.month, photo: data.photo });
+                        }
+                    } catch (e) { console.warn('worker_of_month table not found, using localStorage fallback'); }
+                }
+                loadWorkerFromCloud();
+            }, []);
+
+            const handleSaveWorkerOfMonth = async (e) => {
                 e.preventDefault();
                 const updated = {
                     name: workerForm.name,
@@ -496,9 +516,19 @@
                 };
                 setWorkerOfMonth(updated);
                 setShowWorkerModal(false);
+                if (sbClient) {
+                    try {
+                        const { data: existing } = await sbClient.from('worker_of_month').select('id').limit(1).single();
+                        if (existing) {
+                            await sbClient.from('worker_of_month').update({ name: updated.name, role: updated.role, reason: updated.reason, month: updated.month, photo: updated.photo, updated_at: new Date().toISOString() }).eq('id', existing.id);
+                        } else {
+                            await sbClient.from('worker_of_month').insert([{ name: updated.name, role: updated.role, reason: updated.reason, month: updated.month, photo: updated.photo }]);
+                        }
+                    } catch (e) { console.error('Error syncing worker_of_month to Supabase:', e); }
+                }
             };
 
-            const handleClearWorkerOfMonth = () => {
+            const handleClearWorkerOfMonth = async () => {
                 const cleared = {
                     name: '',
                     role: '',
@@ -510,6 +540,14 @@
                 setWorkerOfMonth(cleared);
                 setWorkerForm({ name: '', role: '', reason: '', month: '', photo: null });
                 setShowWorkerModal(false);
+                if (sbClient) {
+                    try {
+                        const { data: existing } = await sbClient.from('worker_of_month').select('id').limit(1).single();
+                        if (existing) {
+                            await sbClient.from('worker_of_month').update({ name: '', role: '', reason: '', month: 'Sin asignar', photo: null, updated_at: new Date().toISOString() }).eq('id', existing.id);
+                        }
+                    } catch (e) { console.error('Error clearing worker_of_month in Supabase:', e); }
+                }
             };
 
             // ==========================================
@@ -548,25 +586,56 @@
                 localStorage.setItem('cphs_prevention_alerts_v4', JSON.stringify(preventionAlerts));
             }, [preventionAlerts]);
 
-            const handleSaveAlert = (e) => {
+            // Sync preventionAlerts from Supabase on mount
+            useEffect(() => {
+                if (!sbClient) return;
+                async function loadAlertsFromCloud() {
+                    try {
+                        const { data, error } = await sbClient.from('prevention_alerts').select('*').order('created_at', { ascending: false });
+                        if (!error && data && data.length > 0) {
+                            setPreventionAlerts(data);
+                        }
+                    } catch (e) { console.warn('prevention_alerts table not found, using localStorage fallback'); }
+                }
+                loadAlertsFromCloud();
+            }, []);
+
+            const handleSaveAlert = async (e) => {
                 e.preventDefault();
                 if (editingAlert) {
                     setPreventionAlerts(prev => prev.map(a => a.id === editingAlert.id ? { ...a, ...alertForm } : a));
+                    if (sbClient) {
+                        try {
+                            await sbClient.from('prevention_alerts').update({ type: alertForm.type, description: alertForm.description, worker_name: alertForm.worker_name, date: alertForm.date, status: alertForm.status, photo: alertForm.photo, updated_at: new Date().toISOString() }).eq('id', editingAlert.id);
+                        } catch (e) { console.error('Error updating alert in Supabase:', e); }
+                    }
                 } else {
-                    const newAlert = {
-                        id: Date.now(),
-                        ...alertForm
-                    };
-                    setPreventionAlerts(prev => [newAlert, ...prev]);
+                    if (sbClient) {
+                        try {
+                            const { data: inserted, error } = await sbClient.from('prevention_alerts').insert([{ type: alertForm.type, description: alertForm.description, worker_name: alertForm.worker_name, date: alertForm.date, status: alertForm.status, photo: alertForm.photo }]).select();
+                            if (!error && inserted && inserted.length > 0) {
+                                setPreventionAlerts(prev => [inserted[0], ...prev]);
+                            } else {
+                                setPreventionAlerts(prev => [{ id: Date.now(), ...alertForm }, ...prev]);
+                            }
+                        } catch (e) { setPreventionAlerts(prev => [{ id: Date.now(), ...alertForm }, ...prev]); }
+                    } else {
+                        setPreventionAlerts(prev => [{ id: Date.now(), ...alertForm }, ...prev]);
+                    }
                 }
                 setShowAlertModal(false);
                 setEditingAlert(null);
                 setAlertForm({ type: 'ALERTA', description: '', worker_name: '', date: '', status: 'PENDIENTE', photo: null });
             };
 
-            const handleDeleteAlert = (id) => {
+            const handleDeleteAlert = async (id) => {
                 if (window.confirm('¿Está seguro de que desea eliminar esta alerta/sugerencia?')) {
                     setPreventionAlerts(prev => prev.filter(a => a.id !== id));
+                    if (sbClient) {
+                        try {
+                            await sbClient.from('prevention_alerts').delete().eq('id', id);
+                        } catch (e) { console.error('Error deleting alert from Supabase:', e); }
+                    }
                 }
             };
 
